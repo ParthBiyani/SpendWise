@@ -1,0 +1,228 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swiftpm/
+.buildlog/
+migrate_working_dir/
+
+# General IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sublime-project
+*.sublime-workspace
+IntelliJIDEA_DB/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+.phpstorm.meta.php
+/_phpstorm.meta.php
+
+# Dart / Flutter
+# Exceptions to above rules.
+!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+pubspec.lock
+!pubspec.lock  # Make sure to commit pubspec.lock for reproducible builds
+analyzed_lib/
+
+# Generated documentation
+**/doc/api/
+doc/api/
+
+# Obfuscation related
+app.*.map.json
+app.*.symbols
+
+# Coverage
+/coverage/
+.coverage
+*.lcov
+
+# Android
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/.gradle/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+**/android/*.jks
+**/android/*.keystore
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/android/app/src/main/kotlin/io/flutter/plugins/GeneratedPluginRegistrant.kt
+android/gradlew
+android/gradlew.bat
+
+# iOS / MacOS
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Pods/
+**/macos/Pods/
+Pods/
+Podfile.lock
+.symlinks/
+Flutter/Flutter.framework
+Flutter/Flutter.podspec
+**/ios/Carthage/
+**/macos/Carthage/
+**/ios/*.xcworkspace/
+**/macos/*.xcworkspace/
+**/ios/.xcode.env
+**/macos/.xcode.env
+
+# Web
+lib/generated_plugin_registrant.dart
+
+# Linux
+linux/
+
+# Windows
+windows/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+.env.example
+!.env.example
+.secrets
+secrets/
+*.json.backup
+credentials/
+api_keys/
+*.pem
+*.p8
+*.p12
+*.pfx
+*.key
+
+# Build Artifacts & Binaries
+/build/
+dist/
+out/
+*.o
+*.obj
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+.gradle/
+gradle-wrapper.jar
+
+# Testing & Coverage
+.coverage
+.nyc_output/
+coverage/
+.rts2_cache_cjs/
+.rts2_cache_esm/
+.rts2_cache_umd/
+
+# Runtime & Temporary Files
+*.tmp
+tmp/
+temp/
+.temp/
+*.bak
+*.backup
+*.orig
+.viminfo
+.netrwhist
+~$*
+.~lock*
+Thumbs.db
+.cache/
+
+# Editor Backup Files
+*.*~
+.*.sw[a-z]
+*~
+\#*\#
+.\#*
+
+# OS Specific Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+Thumbs.db
+.AppleDouble
+.LSOverride
+.metadata
+
+# Generated & Temporary
+*.g.dart
+*.config.dart
+.dart_tool/build/
+.dart_tool/incremental/
+.dart_tool/kernel/
+.dart_tool/pub/
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+.firebase/
+.firebaserc
+firebase-debug.log
+
+# Lock files - pubspec.lock included with !pubspec.lock rule above
+.pubspec.lock.bak
+
+# Local Development
+.local/
+._local
+local-settings.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/workspace.code-workspace
+.idea/workspace.xml
+.idea/libraries/
+.idea/shelf/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Package Manager Files
+.npm
+.eslintcache
+node_modules/
+
+# Custom Project Files
+# Development utilities
+extract_pdf.py
+*.pdf
