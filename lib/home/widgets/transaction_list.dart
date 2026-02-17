@@ -20,10 +20,12 @@ class TransactionList extends StatelessWidget {
     }
 
     final List<Widget> children = [];
+    double runningBalance = 0;
     for (final group in groups) {
       children.add(DateHeader(label: group.dateLabel));
       for (final item in group.items) {
-        children.add(TransactionTile(item: item));
+        runningBalance += item.isIncome ? item.amount : -item.amount;
+        children.add(TransactionTile(item: item, balanceAfter: runningBalance));
         children.add(const SizedBox(height: 0));
       }
       if (children.isNotEmpty) {

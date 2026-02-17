@@ -1,8 +1,9 @@
 class TransactionItem {
   const TransactionItem({
+    this.id,
     required this.remarks,
     required this.category,
-    required this.subcategory,
+    required this.classType,
     required this.dateTime,
     required this.amount,
     required this.isIncome,
@@ -13,16 +14,12 @@ class TransactionItem {
 
   final String remarks;
   final String category;
-  final String subcategory;
+  final String classType; // Necessity, Desire, Investment, or Others
   final DateTime dateTime;
   final double amount;
   final bool isIncome;
   final String paymentMethod;
   final String referenceId;
   final String entryBy;
-
-  double get balanceAfter {
-    const baseline = 25000.0;
-    return isIncome ? baseline + amount : baseline - amount;
-  }
+  final int? id;
 }

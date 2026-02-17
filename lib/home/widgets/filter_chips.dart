@@ -30,6 +30,10 @@ class FilterChips extends StatelessWidget {
             selectedColor: theme.colorScheme.primary,
             backgroundColor: Colors.white,
             side: BorderSide(color: theme.colorScheme.primary),
+            padding: EdgeInsets.zero,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: const VisualDensity(vertical: -2),
             labelStyle: TextStyle(
               color: isSelected ? Colors.white : theme.textTheme.labelLarge?.color,
             ),
