@@ -5,9 +5,10 @@ import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/pages/transaction_form_page.dart';
 import 'package:spendwise/home/models/date_group.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
+import 'package:spendwise/home/models/filter_state.dart';
 import 'package:spendwise/home/utils/date_filters.dart';
 import 'package:spendwise/home/utils/formatters.dart';
-import 'package:spendwise/home/widgets/filter_chips.dart';
+import 'package:spendwise/home/widgets/filter_row.dart';
 import 'package:spendwise/home/widgets/summary_card.dart';
 import 'package:spendwise/home/widgets/transaction_tile.dart';
 
@@ -19,19 +20,38 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const List<String> _filters = <String>[
-    'All',
-    'Today',
-    'This Week',
-    'This Month',
-    'This Year',
-  ];
-
-  String _selectedFilter = _filters.first;
+  FilterState _filterState = const FilterState();
   late final AppDatabase _database;
   late final TransactionsRepository _repository;
   final Set<int> _selectedTransactionIds = {};
   bool _isSelectionMode = false;
+
+  static const List<String> _availableCategories = [
+    'Income',
+    'Dining',
+    'Snacks',
+    'Shopping',
+    'Groceries',
+    'Travel',
+    'Bills',
+    'Health',
+    'Education',
+    'Investment',
+    'Personal Care',
+    'Entertainment',
+    'Gifts',
+    'EMIs',
+    'Transfers',
+    'Housing',
+    'Others',
+  ];
+
+  static const List<String> _availablePaymentMethods = [
+    'Cash',
+    'UPI',
+    'Card',
+    'Bank',
+  ];
 
   @override
   void initState() {
@@ -49,19 +69,67 @@ class _HomePageState extends State<HomePage> {
   List<TransactionItem> _applyFilter(List<TransactionItem> items) {
     final DateTime now = DateTime.now();
     return items.where((item) {
-      switch (_selectedFilter) {
+      // Apply date filter
+      bool dateMatch = true;
+      switch (_filterState.dateFilter) {
         case 'Today':
-          return isSameDay(item.dateTime, now);
+          dateMatch = isSameDay(item.dateTime, now);
+          break;
         case 'This Week':
-          return isSameWeek(item.dateTime, now);
+          dateMatch = isSameWeek(item.dateTime, now);
+          break;
         case 'This Month':
-          return item.dateTime.year == now.year && item.dateTime.month == now.month;
+          dateMatch = item.dateTime.year == now.year && item.dateTime.month == now.month;
+          break;
         case 'This Year':
-          return item.dateTime.year == now.year;
-        case 'All':
+          dateMatch = item.dateTime.year == now.year;
+          break;
+        case 'Custom Range':
+          final start = _filterState.customStartDate;
+          final end = _filterState.customEndDate;
+          if (start != null && end != null) {
+            dateMatch = !item.dateTime.isBefore(start) && !item.dateTime.isAfter(end);
+          } else if (start != null) {
+            dateMatch = !item.dateTime.isBefore(start);
+          } else if (end != null) {
+            dateMatch = !item.dateTime.isAfter(end);
+          } else {
+            dateMatch = true;
+          }
+          break;
+        case 'All Time':
         default:
-          return true;
+          dateMatch = true;
       }
+      if (!dateMatch) return false;
+
+      // Apply category filter
+      if (_filterState.categories.isNotEmpty) {
+        if (!_filterState.categories.contains(item.category)) {
+          return false;
+        }
+      }
+
+      // Apply payment method filter
+      if (_filterState.paymentMethods.isNotEmpty) {
+        if (!_filterState.paymentMethods.contains(item.paymentMethod)) {
+          return false;
+        }
+      }
+
+      // Apply transaction type filter
+      if (_filterState.transactionType != null && 
+          _filterState.transactionType!.isNotEmpty &&
+          _filterState.transactionType!.length != 2) {
+        if (_filterState.transactionType!.contains('Money In') && !item.isIncome) {
+          return false;
+        }
+        if (_filterState.transactionType!.contains('Money Out') && item.isIncome) {
+          return false;
+        }
+      }
+
+      return true;
     }).toList();
   }
 
@@ -107,6 +175,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showDeleteConfirmation() async {
     final theme = Theme.of(context);
+    final destructiveRed = Colors.red.shade700;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
@@ -151,14 +220,25 @@ class _HomePageState extends State<HomePage> {
             ),
             // Content
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 1),
               child: Text(
                 _selectedTransactionIds.length == 1
-                    ? 'Are you sure you want to delete this transaction? This action cannot be undone.'
-                    : 'Are you sure you want to delete ${_selectedTransactionIds.length} transactions? This action cannot be undone.',
+                    ? 'Are you sure you want to delete this transaction?'
+                    : 'Are you sure you want to delete ${_selectedTransactionIds.length} transactions?',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   height: 1.5,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 1, 20, 24),
+              child: Text(
+                'This action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.5,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -178,20 +258,21 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        border: Border.all(color: Colors.red, width: 1.5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextButton.icon(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).pop(false),
-                        icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                        icon: const Icon(Icons.close, size: 20),
                         label: const Text(
                           'Cancel',
-                          style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
-                        style: TextButton.styleFrom(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.colorScheme.onSurface,
+                          side: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
@@ -199,27 +280,30 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextButton.icon(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                        label: const Text(
-                          'Confirm',
-                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    child: SizedBox(
+                      height: 44,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: destructiveRed,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: destructiveRed.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: TextButton.icon(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.delete, color: Colors.white, size: 20),
+                          label: const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
                         ),
                       ),
                     ),
@@ -248,28 +332,35 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-        leading: _isSelectionMode
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _exitSelectionMode,
-              )
-            : null,
-        title: _isSelectionMode
-            ? Text('${_selectedTransactionIds.length} selected')
-            : const Text('SpendWise'),
-        actions: _isSelectionMode
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: _showDeleteConfirmation,
-                ),
-              ]
-            : null,
-      ),
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
+        if (!didPop && _isSelectionMode) {
+          _exitSelectionMode();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: Colors.white,
+          leading: _isSelectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _exitSelectionMode,
+                )
+              : null,
+          title: _isSelectionMode
+              ? Text('${_selectedTransactionIds.length} selected')
+              : const Text('SpendWise'),
+          actions: _isSelectionMode
+              ? [
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: _showDeleteConfirmation,
+                  ),
+                ]
+              : null,
+        ),
       body: SafeArea(
         child: StreamBuilder<List<TransactionItem>>(
           stream: _repository.watchAll(),
@@ -297,10 +388,11 @@ class _HomePageState extends State<HomePage> {
             return CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(
-                  child: FilterChips(
-                    filters: _filters,
-                    selected: _selectedFilter,
-                    onSelected: (value) => setState(() => _selectedFilter = value),
+                  child: FilterRow(
+                    filterState: _filterState,
+                    onFilterChanged: (newState) => setState(() => _filterState = newState),
+                    availableCategories: _availableCategories,
+                    availablePaymentMethods: _availablePaymentMethods,
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -462,6 +554,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

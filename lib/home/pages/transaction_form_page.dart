@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/utils/formatters.dart';
+import 'package:spendwise/home/widgets/category_payment_widgets.dart';
 
 class TransactionFormPage extends StatefulWidget {
   const TransactionFormPage({
@@ -56,39 +57,12 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     'Others': 'Desire',
   };
 
-  final List<_CategoryOption> _categoryOptions = const [
-    _CategoryOption('Income', Icons.currency_rupee),
-    _CategoryOption('Dining', Icons.restaurant),
-    _CategoryOption('Snacks', Icons.fastfood),
-    _CategoryOption('Shopping', Icons.shopping_bag),
-    _CategoryOption('Groceries', Icons.shopping_cart),
-    _CategoryOption('Travel', Icons.directions_car),
-    _CategoryOption('Bills', Icons.receipt_long),
-    _CategoryOption('Health', Icons.health_and_safety),
-    _CategoryOption('Education', Icons.school),
-    _CategoryOption('Investment', Icons.trending_up),
-    _CategoryOption('Personal Care', Icons.spa),
-    _CategoryOption('Entertainment', Icons.movie),
-    _CategoryOption('Gifts', Icons.card_giftcard),
-    _CategoryOption('EMIs', Icons.payments),
-    _CategoryOption('Transfers', Icons.swap_horiz),
-    _CategoryOption('Housing', Icons.home),
-    _CategoryOption('Others', Icons.category),
-  ];
-
   final List<String> _paymentMethods = const [
     'Cash',
     'UPI',
     'Card',
     'Bank',
   ];
-
-  final Map<String, IconData> _paymentMethodIcons = const {
-    'Cash': Icons.payments,
-    'Card': Icons.credit_card,
-    'Bank': Icons.account_balance,
-    'UPI': Icons.qr_code,
-  };
 
   @override
   void initState() {
@@ -235,18 +209,18 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     }
   }
 
-  List<_CategoryOption> _sortedCategoryOptions(List<TransactionItem> items) {
+  List<CategoryOption> _sortedCategoryOptions(List<TransactionItem> items) {
     final counts = <String, int>{};
     for (final item in items) {
       counts[item.category] = (counts[item.category] ?? 0) + 1;
     }
 
     final order = <String, int>{};
-    for (var i = 0; i < _categoryOptions.length; i++) {
-      order[_categoryOptions[i].label] = i;
+    for (var i = 0; i < categoryOptions.length; i++) {
+      order[categoryOptions[i].label] = i;
     }
 
-    final options = [..._categoryOptions];
+    final options = [...categoryOptions];
     options.sort((a, b) {
       final countA = counts[a.label] ?? 0;
       final countB = counts[b.label] ?? 0;
@@ -435,7 +409,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                           itemBuilder: (context, index) {
                             final option = options[index];
                             final selected = _selectedCategory == option.label;
-                            return _CategoryTile(
+                            return CategoryTile(
                               label: option.label,
                               icon: option.icon,
                               size: tileSize,
@@ -472,9 +446,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     }
                     final label = _paymentMethods[index];
                     final selected = _selectedPaymentMethod == label;
-                    return _FilledPill(
+                    return FilledPill(
                       label: label,
-                      icon: _paymentMethodIcons[label],
+                      icon: paymentMethodIcons[label],
                       selected: selected,
                       hasSelection: hasPaymentSelection,
                       onTap: () {
@@ -717,151 +691,6 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({
-    required this.label,
-    required this.icon,
-    required this.size,
-    required this.selected,
-    required this.hasSelection,
-    required this.selectedColor,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final double size;
-  final bool selected;
-  final bool hasSelection;
-  final Color selectedColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dimmedColor = theme.colorScheme.primary.withValues(alpha: 0.7);
-    final labelColor = selected
-        ? theme.colorScheme.primary
-        : (hasSelection ? dimmedColor : theme.textTheme.labelLarge?.color);
-    final iconColor = selected
-        ? Colors.white
-        : (hasSelection ? dimmedColor : theme.colorScheme.primary);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: size,
-        child: Column(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: selected ? selectedColor : Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.12)),
-              ),
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  child: Icon(
-                    icon,
-                    key: ValueKey<Color>(iconColor),
-                    size: size * 0.38,
-                    color: iconColor,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: theme.textTheme.labelSmall?.copyWith(
-                    color: labelColor,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  ) ?? const TextStyle(),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryOption {
-  const _CategoryOption(this.label, this.icon);
-
-  final String label;
-  final IconData icon;
-}
-
-class _FilledPill extends StatelessWidget {
-  const _FilledPill({
-    required this.label,
-    this.icon,
-    required this.selected,
-    required this.hasSelection,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData? icon;
-  final bool selected;
-  final bool hasSelection;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dimmedColor = theme.colorScheme.primary.withValues(alpha: 0.7);
-    final textColor = selected
-        ? Colors.white
-        : (hasSelection ? dimmedColor : theme.colorScheme.primary);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: selected ? theme.colorScheme.primary : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null)
-                Icon(
-                  icon,
-                  size: 16,
-                  color: textColor,
-                ),
-              if (icon != null) const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
