@@ -8,11 +8,17 @@ class TransactionTile extends StatelessWidget {
     required this.item,
     required this.balanceAfter,
     this.onTap,
+    this.onLongPress,
+    this.isSelected = false,
+    this.isSelectionMode = false,
   });
 
   final TransactionItem item;
   final double balanceAfter;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool isSelected;
+  final bool isSelectionMode;
 
   static const Map<String, IconData> _categoryIcons = {
     'Income': Icons.currency_rupee,
@@ -42,19 +48,27 @@ class TransactionTile extends StatelessWidget {
     final categoryIcon = _categoryIcons[item.category] ?? Icons.category;
     return Card(
       elevation: 0,
-      color: Colors.white,
+      color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.25)),
+        side: BorderSide(
+          color: isSelected 
+              ? theme.colorScheme.primary 
+              : theme.colorScheme.primary.withValues(alpha: 0.25),
+          width: isSelected ? 2 : 1,
+        ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         onTap: onTap,
+        onLongPress: onLongPress,
         leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+          backgroundColor: isSelected 
+              ? theme.colorScheme.primary 
+              : theme.colorScheme.primary.withValues(alpha: 0.1),
           child: Icon(
-            categoryIcon,
-            color: theme.colorScheme.primary,
+            isSelected ? Icons.check : categoryIcon,
+            color: isSelected ? Colors.white : theme.colorScheme.primary,
           ),
         ),
         title: Column(
@@ -64,8 +78,10 @@ class TransactionTile extends StatelessWidget {
               item.category,
               style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            // const SizedBox(height: 4),
-            Text(item.remarks, style: theme.textTheme.bodySmall),
+            if (item.remarks.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(item.remarks, style: theme.textTheme.bodySmall),
+            ],
             const SizedBox(height: 8),
             Text(
               '${item.entryBy} · ${formatTime(item.dateTime)}',

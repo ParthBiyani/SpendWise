@@ -30,6 +30,8 @@ class _HomePageState extends State<HomePage> {
   String _selectedFilter = _filters.first;
   late final AppDatabase _database;
   late final TransactionsRepository _repository;
+  final Set<int> _selectedTransactionIds = {};
+  bool _isSelectionMode = false;
 
   @override
   void initState() {
@@ -76,6 +78,172 @@ class _HomePageState extends State<HomePage> {
         .toList();
   }
 
+  void _toggleSelection(int transactionId) {
+    setState(() {
+      if (_selectedTransactionIds.contains(transactionId)) {
+        _selectedTransactionIds.remove(transactionId);
+        if (_selectedTransactionIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedTransactionIds.add(transactionId);
+      }
+    });
+  }
+
+  void _startSelectionMode(int transactionId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedTransactionIds.add(transactionId);
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedTransactionIds.clear();
+    });
+  }
+
+  Future<void> _showDeleteConfirmation() async {
+    final theme = Theme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Padding above header
+            const SizedBox(height: 16),
+            // Header with warning icon and title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade700,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _selectedTransactionIds.length == 1
+                          ? 'Delete Transaction'
+                          : 'Delete Transactions',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Text(
+                _selectedTransactionIds.length == 1
+                    ? 'Are you sure you want to delete this transaction? This action cannot be undone.'
+                    : 'Are you sure you want to delete ${_selectedTransactionIds.length} transactions? This action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  height: 1.5,
+                ),
+              ),
+            ),
+            // Divider - 75% width and centered
+            Center(
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.55,
+                child: Divider(
+                  height: 1,
+                  color: Colors.grey.withValues(alpha: 0.2),
+                ),
+              ),
+            ),
+            // Buttons
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        border: Border.all(color: Colors.red, width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                        label: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        icon: const Icon(Icons.check, color: Colors.white, size: 20),
+                        label: const Text(
+                          'Confirm',
+                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteSelectedTransactions();
+    }
+  }
+
+  Future<void> _deleteSelectedTransactions() async {
+    for (final id in _selectedTransactionIds) {
+      await _repository.delete(id);
+    }
+    _exitSelectionMode();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -84,7 +252,23 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
-        title: const Text('SpendWise'),
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelectionMode,
+              )
+            : null,
+        title: _isSelectionMode
+            ? Text('${_selectedTransactionIds.length} selected')
+            : const Text('SpendWise'),
+        actions: _isSelectionMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: _showDeleteConfirmation,
+                ),
+              ]
+            : null,
       ),
       body: SafeArea(
         child: StreamBuilder<List<TransactionItem>>(
@@ -168,16 +352,27 @@ class _HomePageState extends State<HomePage> {
                                   child: TransactionTile(
                                     item: item,
                                     balanceAfter: balanceAfter,
+                                    isSelected: _selectedTransactionIds.contains(item.id),
+                                    isSelectionMode: _isSelectionMode,
                                     onTap: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => TransactionFormPage(
-                                            repository: _repository,
-                                            isEditing: true,
-                                            initialItem: item,
+                                      if (_isSelectionMode) {
+                                        _toggleSelection(item.id!);
+                                      } else {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => TransactionFormPage(
+                                              repository: _repository,
+                                              isEditing: true,
+                                              initialItem: item,
+                                            ),
                                           ),
-                                        ),
-                                      );
+                                        );
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      if (!_isSelectionMode && item.id != null) {
+                                        _startSelectionMode(item.id!);
+                                      }
                                     },
                                   ),
                                 );
