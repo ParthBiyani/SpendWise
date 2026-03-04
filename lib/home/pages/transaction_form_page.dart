@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/utils/formatters.dart';
@@ -156,26 +157,29 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+    final amountText = _amountController.text.trim();
+    if (amountText.isEmpty) {
+      _showErrorToast('Enter amount');
+      return;
+    }
+
+    final amount = double.tryParse(amountText);
+    if (amount == null || amount <= 0) {
+      _showErrorToast('Enter a valid amount');
       return;
     }
 
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a category')),
-      );
+      _showErrorToast('Select a category');
       return;
     }
 
     if (_selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a payment method')),
-      );
+      _showErrorToast('Select a payment method');
       return;
     }
 
     try {
-      final amount = double.parse(_amountController.text.trim());
       final classType = _categoryClassification[_selectedCategory!] ?? 'Desire';
       final item = TransactionItem(
         id: widget.initialItem?.id,
@@ -202,11 +206,43 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving transaction: $e')),
-        );
+        _showErrorToast('Error saving transaction: $e');
       }
     }
+  }
+
+  void _showErrorToast(String message) {
+    final fToast = FToast()..init(context);
+    fToast.showToast(
+      toastDuration: const Duration(seconds: 2),
+      positionedToastBuilder: (context, child, _) {
+        return Positioned(
+          left: 24,
+          right: 24,
+          bottom: 100,
+          child: child,
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   List<CategoryOption> _sortedCategoryOptions(List<TransactionItem> items) {
@@ -367,16 +403,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                             ),
                             contentPadding: EdgeInsets.zero,
                           ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Enter amount';
-                            }
-                            final parsed = double.tryParse(value);
-                            if (parsed == null || parsed <= 0) {
-                              return 'Enter a valid amount';
-                            }
-                            return null;
-                          },
                           onChanged: (value) {
                             setState(() {});
                           },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/home/models/filter_state.dart';
 import 'package:spendwise/home/utils/formatters.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
@@ -60,22 +61,9 @@ class _AllFiltersBottomSheetState extends State<AllFiltersBottomSheet> {
     setState(() {
       if (isStart) {
         final start = DateTime(picked.year, picked.month, picked.day);
-        DateTime? end = _currentFilters.customEndDate;
-        if (end != null && end.isBefore(start)) {
-          end = DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            23,
-            59,
-            59,
-            999,
-          );
-        }
         _currentFilters = _currentFilters.copyWith(
           dateFilter: 'Custom Range',
           customStartDate: () => start,
-          customEndDate: () => end,
         );
       } else {
         final end = DateTime(
@@ -87,17 +75,46 @@ class _AllFiltersBottomSheetState extends State<AllFiltersBottomSheet> {
           59,
           999,
         );
-        DateTime? start = _currentFilters.customStartDate;
-        if (start != null && start.isAfter(end)) {
-          start = DateTime(picked.year, picked.month, picked.day);
-        }
         _currentFilters = _currentFilters.copyWith(
           dateFilter: 'Custom Range',
-          customStartDate: () => start,
           customEndDate: () => end,
         );
       }
     });
+  }
+
+  void _showDateRangeErrorToast(BuildContext context) {
+    final fToast = FToast()..init(context);
+    fToast.showToast(
+      toastDuration: const Duration(seconds: 2),
+      positionedToastBuilder: (context, child, _) {
+        return Positioned(
+          left: 24,
+          right: 24,
+          bottom: 100,
+          child: child,
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Start date must be before end date',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -566,7 +583,18 @@ class _AllFiltersBottomSheetState extends State<AllFiltersBottomSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(_currentFilters),
+                      onPressed: () {
+                        // Validate custom date range if selected
+                        if (_currentFilters.dateFilter == 'Custom Range') {
+                          if (_currentFilters.customStartDate != null && _currentFilters.customEndDate != null) {
+                            if (_currentFilters.customStartDate!.isAfter(_currentFilters.customEndDate!)) {
+                              _showDateRangeErrorToast(context);
+                              return;
+                            }
+                          }
+                        }
+                        Navigator.of(context).pop(_currentFilters);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: Colors.white,

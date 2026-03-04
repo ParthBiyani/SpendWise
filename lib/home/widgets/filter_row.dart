@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/home/models/filter_state.dart';
 import 'package:spendwise/home/widgets/all_filters_bottom_sheet.dart';
 import 'package:spendwise/home/widgets/filter_dropdown.dart';
@@ -90,6 +91,40 @@ class FilterRow extends StatelessWidget {
     );
   }
 
+  void _showDateRangeErrorToast(BuildContext context) {
+    final fToast = FToast()..init(context);
+    fToast.showToast(
+      toastDuration: const Duration(seconds: 2),
+      positionedToastBuilder: (context, child, _) {
+        return Positioned(
+          left: 24,
+          right: 24,
+          bottom: 100,
+          child: child,
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'Start date must be before end date',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<DateTimeRange?> _showCustomRangeDialog(BuildContext context) async {
     final now = DateTime.now();
     DateTime startDate =
@@ -118,17 +153,6 @@ class FilterRow extends StatelessWidget {
                       if (picked != null) {
                         setDialogState(() {
                           startDate = DateTime(picked.year, picked.month, picked.day);
-                          if (endDate.isBefore(startDate)) {
-                            endDate = DateTime(
-                              picked.year,
-                              picked.month,
-                              picked.day,
-                              23,
-                              59,
-                              59,
-                              999,
-                            );
-                          }
                         });
                       }
                     },
@@ -155,9 +179,6 @@ class FilterRow extends StatelessWidget {
                             59,
                             999,
                           );
-                          if (startDate.isAfter(endDate)) {
-                            startDate = DateTime(picked.year, picked.month, picked.day);
-                          }
                         });
                       }
                     },
@@ -212,6 +233,11 @@ class FilterRow extends StatelessWidget {
                           ),
                           child: TextButton.icon(
                             onPressed: () {
+                              // Validate that start date is not after end date
+                              if (startDate.isAfter(endDate)) {
+                                _showDateRangeErrorToast(context);
+                                return;
+                              }
                               Navigator.of(dialogContext).pop(
                                 DateTimeRange(start: startDate, end: endDate),
                               );
