@@ -16,11 +16,11 @@
 
 ## Data Layer
 
-- [ ] Move filtering (date, category, payment method) into SQL `WHERE` clauses instead of filtering in Dart after loading all rows
-- [ ] Add database indexes on `date_time`, `category`, and `payment_method` columns
-- [ ] Implement pagination for the transaction list
-- [ ] Fix the migration bug — `onUpgrade` only handles `from < 3`; add a proper guard structure so future schema versions (4, 5, …) have their own migration paths
-- [ ] Unify category classification into a single source of truth (currently duplicated between `app_database.dart` migration SQL and `transaction_form_page.dart` Dart map)
+- [x] Move filtering (date, category, payment method) into SQL `WHERE` clauses instead of filtering in Dart after loading all rows
+- [x] Add database indexes on `date_time`, `category`, and `payment_method` columns
+- [x] Implement pagination for the transaction list
+- [x] Fix the migration bug — `onUpgrade` only handles `from < 3`; add a proper guard structure so future schema versions (4, 5, …) have their own migration paths
+- [x] Unify category classification into a single source of truth (currently duplicated between `app_database.dart` migration SQL and `transaction_form_page.dart` Dart map)
 
 ## Constants & Code Duplication
 

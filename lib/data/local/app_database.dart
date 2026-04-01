@@ -7,6 +7,9 @@ import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
+@TableIndex(name: 'idx_transactions_date_time', columns: {#occurredAt})
+@TableIndex(name: 'idx_transactions_category', columns: {#category})
+@TableIndex(name: 'idx_transactions_payment_method', columns: {#paymentMethod})
 class Transactions extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remarks => text()();
@@ -25,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -34,7 +37,12 @@ class AppDatabase extends _$AppDatabase {
         return m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 3) {
+        // Each block runs only when upgrading across that specific version
+        // boundary, regardless of how many versions are being skipped.
+        // Pattern: from <= N && to > N  →  "step N→N+1 has not yet been applied"
+
+        // v2 → v3: add class_type column, backfill from category
+        if (from <= 2 && to > 2) {
           await m.database.customStatement('DROP TABLE IF EXISTS "transactions_new";');
           await m.database.customStatement('''
 CREATE TABLE transactions_new (
@@ -82,6 +90,18 @@ FROM "transactions";
           await m.database.customStatement('DROP TABLE "transactions";');
           await m.database.customStatement('ALTER TABLE "transactions_new" RENAME TO "transactions";');
         }
+
+        // v3 → v4: add indexes on date_time, category, payment_method
+        if (from <= 3 && to > 3) {
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_date_time ON transactions (date_time);');
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (category);');
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions (payment_method);');
+        }
+
+        // v4 → v5: (future migration — add steps here)
       },
     );
   }
@@ -92,6 +112,166 @@ FROM "transactions";
             (t) => OrderingTerm(expression: t.occurredAt, mode: OrderingMode.desc),
           ]))
         .watch();
+  }
+
+  Stream<List<Transaction>> watchFilteredTransactions({
+    required String dateFilter,
+    DateTime? customStartDate,
+    DateTime? customEndDate,
+    required List<String> categories,
+    required List<String> paymentMethods,
+    bool? isIncome, // null = all, true = income only, false = expense only
+  }) {
+    final now = DateTime.now();
+    final query = select(transactions)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.occurredAt, mode: OrderingMode.desc),
+      ]);
+
+    query.where((t) {
+      final conditions = <Expression<bool>>[];
+
+      switch (dateFilter) {
+        case 'Today':
+          final start = DateTime(now.year, now.month, now.day);
+          final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(start))
+            ..add(t.occurredAt.isSmallerOrEqualValue(end));
+          break;
+        case 'This Week':
+          final offset = now.weekday - 1;
+          final weekStart =
+              DateTime(now.year, now.month, now.day - offset);
+          final weekEnd = DateTime(
+              now.year, now.month, now.day - offset + 6, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(weekStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(weekEnd));
+          break;
+        case 'This Month':
+          final monthStart = DateTime(now.year, now.month);
+          final monthEnd =
+              DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(monthStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(monthEnd));
+          break;
+        case 'This Year':
+          final yearStart = DateTime(now.year);
+          final yearEnd = DateTime(now.year, 12, 31, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(yearStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(yearEnd));
+          break;
+        case 'Custom Range':
+          if (customStartDate != null) {
+            conditions.add(t.occurredAt.isBiggerOrEqualValue(customStartDate));
+          }
+          if (customEndDate != null) {
+            conditions.add(t.occurredAt.isSmallerOrEqualValue(customEndDate));
+          }
+          break;
+      }
+
+      if (categories.isNotEmpty) {
+        conditions.add(t.category.isIn(categories));
+      }
+
+      if (paymentMethods.isNotEmpty) {
+        conditions.add(t.paymentMethod.isIn(paymentMethods));
+      }
+
+      if (isIncome != null) {
+        conditions.add(t.isIncome.equals(isIncome));
+      }
+
+      if (conditions.isEmpty) return const Constant(true);
+      return conditions.reduce((a, b) => a & b);
+    });
+
+    return query.watch();
+  }
+
+  Future<List<Transaction>> fetchFilteredTransactionsPaged({
+    required String dateFilter,
+    DateTime? customStartDate,
+    DateTime? customEndDate,
+    required List<String> categories,
+    required List<String> paymentMethods,
+    bool? isIncome,
+    required int limit,
+    required int offset,
+  }) {
+    final now = DateTime.now();
+    final query = select(transactions)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.occurredAt, mode: OrderingMode.desc),
+      ])
+      ..limit(limit, offset: offset);
+
+    query.where((t) {
+      final conditions = <Expression<bool>>[];
+
+      switch (dateFilter) {
+        case 'Today':
+          final start = DateTime(now.year, now.month, now.day);
+          final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(start))
+            ..add(t.occurredAt.isSmallerOrEqualValue(end));
+          break;
+        case 'This Week':
+          final offset = now.weekday - 1;
+          final weekStart = DateTime(now.year, now.month, now.day - offset);
+          final weekEnd = DateTime(
+              now.year, now.month, now.day - offset + 6, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(weekStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(weekEnd));
+          break;
+        case 'This Month':
+          final monthStart = DateTime(now.year, now.month);
+          final monthEnd =
+              DateTime(now.year, now.month + 1, 0, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(monthStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(monthEnd));
+          break;
+        case 'This Year':
+          final yearStart = DateTime(now.year);
+          final yearEnd = DateTime(now.year, 12, 31, 23, 59, 59, 999);
+          conditions
+            ..add(t.occurredAt.isBiggerOrEqualValue(yearStart))
+            ..add(t.occurredAt.isSmallerOrEqualValue(yearEnd));
+          break;
+        case 'Custom Range':
+          if (customStartDate != null) {
+            conditions
+                .add(t.occurredAt.isBiggerOrEqualValue(customStartDate));
+          }
+          if (customEndDate != null) {
+            conditions
+                .add(t.occurredAt.isSmallerOrEqualValue(customEndDate));
+          }
+          break;
+      }
+
+      if (categories.isNotEmpty) {
+        conditions.add(t.category.isIn(categories));
+      }
+      if (paymentMethods.isNotEmpty) {
+        conditions.add(t.paymentMethod.isIn(paymentMethods));
+      }
+      if (isIncome != null) {
+        conditions.add(t.isIncome.equals(isIncome));
+      }
+
+      if (conditions.isEmpty) return const Constant(true);
+      return conditions.reduce((a, b) => a & b);
+    });
+
+    return query.get();
   }
 
   Future<int> addTransaction(TransactionsCompanion entry) {

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:spendwise/data/local/app_database.dart';
+import 'package:spendwise/home/models/filter_state.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 
 class TransactionsRepository {
@@ -11,6 +12,46 @@ class TransactionsRepository {
     return _db.watchAllTransactions().map(
           (rows) => rows.map(_toItem).toList(),
         );
+  }
+
+  Stream<List<TransactionItem>> watchFiltered(FilterState filterState) {
+    return _db
+        .watchFilteredTransactions(
+          dateFilter: filterState.dateFilter,
+          customStartDate: filterState.customStartDate,
+          customEndDate: filterState.customEndDate,
+          categories: filterState.categories,
+          paymentMethods: filterState.paymentMethods,
+          isIncome: switch (filterState.transactionType) {
+            TransactionTypeFilter.income => true,
+            TransactionTypeFilter.expense => false,
+            TransactionTypeFilter.all => null,
+          },
+        )
+        .map((rows) => rows.map(_toItem).toList());
+  }
+
+  Future<List<TransactionItem>> fetchPaged(
+    FilterState filterState, {
+    required int limit,
+    required int offset,
+  }) {
+    return _db
+        .fetchFilteredTransactionsPaged(
+          dateFilter: filterState.dateFilter,
+          customStartDate: filterState.customStartDate,
+          customEndDate: filterState.customEndDate,
+          categories: filterState.categories,
+          paymentMethods: filterState.paymentMethods,
+          isIncome: switch (filterState.transactionType) {
+            TransactionTypeFilter.income => true,
+            TransactionTypeFilter.expense => false,
+            TransactionTypeFilter.all => null,
+          },
+          limit: limit,
+          offset: offset,
+        )
+        .then((rows) => rows.map(_toItem).toList());
   }
 
   Future<int> add(TransactionItem item) {

@@ -6,6 +6,7 @@ import 'package:spendwise/home/widgets/form/amount_field.dart';
 import 'package:spendwise/home/widgets/form/category_selector.dart';
 import 'package:spendwise/home/widgets/form/payment_method_selector.dart';
 import 'package:spendwise/home/widgets/form/transaction_datetime_row.dart';
+import 'package:spendwise/providers.dart' show categoryClassification, availablePaymentMethods;
 
 class TransactionFormPage extends StatefulWidget {
   const TransactionFormPage({
@@ -37,28 +38,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   String? _selectedCategory;
   String? _selectedPaymentMethod;
 
-  // Category to classification mapping
-  static const Map<String, String> _categoryClassification = {
-    'Income': 'Others',
-    'Dining': 'Desire',
-    'Snacks': 'Desire',
-    'Shopping': 'Desire',
-    'Groceries': 'Necessity',
-    'Travel': 'Necessity',
-    'Bills': 'Necessity',
-    'Health': 'Necessity',
-    'Education': 'Investment',
-    'Investment': 'Investment',
-    'Personal Care': 'Necessity',
-    'Entertainment': 'Desire',
-    'Gifts': 'Desire',
-    'EMIs': 'Necessity',
-    'Transfers': 'Others',
-    'Housing': 'Necessity',
-    'Others': 'Desire',
-  };
-
-  static const List<String> _paymentMethods = ['Cash', 'UPI', 'Card', 'Bank'];
 
   @override
   void initState() {
@@ -166,7 +145,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     }
 
     try {
-      final classType = _categoryClassification[_selectedCategory!] ?? 'Desire';
+      final classType = categoryClassification[_selectedCategory!] ?? 'Desire';
       final item = TransactionItem(
         id: widget.initialItem?.id,
         remarks: _remarksController.text,
@@ -272,7 +251,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               _SectionHeader(title: 'Payment method', isRequired: true),
               const SizedBox(height: 10),
               PaymentMethodSelector(
-                paymentMethods: _paymentMethods,
+                paymentMethods: availablePaymentMethods,
                 selectedPaymentMethod: _selectedPaymentMethod,
                 onPaymentMethodSelected: (method) {
                   setState(() {

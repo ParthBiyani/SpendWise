@@ -19,6 +19,28 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   final Set<int> _selectedTransactionIds = {};
   bool _isSelectionMode = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      ref.read(transactionPageProvider.notifier).loadNextPage();
+    }
+  }
 
   void _toggleSelection(int id) {
     setState(() {
@@ -84,7 +106,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     final groups = ref.watch(groupedTransactionsProvider);
     final balances = ref.watch(runningBalancesProvider);
     final summary = ref.watch(summaryProvider);
-    final isLoading = ref.watch(transactionsStreamProvider).isLoading;
+    final pageState = ref.watch(transactionPageProvider);
+    final isLoading = pageState.isLoading;
+    final isLoadingMore = pageState.valueOrNull?.isLoadingMore ?? false;
 
     return PopScope(
       canPop: !_isSelectionMode,
@@ -115,6 +139,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         body: SafeArea(
           child: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               const SliverToBoxAdapter(child: FilterRow()),
               SliverToBoxAdapter(
@@ -139,7 +164,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                   ),
                 )
-              else
+              else ...[
                 GroupedTransactionSliver(
                   groups: groups,
                   balances: balances,
@@ -158,6 +183,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                     }
                   },
                 ),
+                if (isLoadingMore)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
