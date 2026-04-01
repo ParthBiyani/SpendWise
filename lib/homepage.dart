@@ -1,55 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:spendwise/data/repositories/transactions_repository.dart';
-import 'package:spendwise/home/models/filter_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/pages/transaction_form_page.dart';
-import 'package:spendwise/home/utils/transaction_utils.dart';
 import 'package:spendwise/home/widgets/delete_confirmation_dialog.dart';
 import 'package:spendwise/home/widgets/filter_row.dart';
 import 'package:spendwise/home/widgets/grouped_transaction_sliver.dart';
 import 'package:spendwise/home/widgets/home_bottom_bar.dart';
 import 'package:spendwise/home/widgets/summary_card.dart';
+import 'package:spendwise/providers.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.repository});
-
-  final TransactionsRepository repository;
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  FilterState _filterState = const FilterState();
+class _HomePageState extends ConsumerState<HomePage> {
   final Set<int> _selectedTransactionIds = {};
   bool _isSelectionMode = false;
-
-  static const List<String> _availableCategories = [
-    'Income',
-    'Dining',
-    'Snacks',
-    'Shopping',
-    'Groceries',
-    'Travel',
-    'Bills',
-    'Health',
-    'Education',
-    'Investment',
-    'Personal Care',
-    'Entertainment',
-    'Gifts',
-    'EMIs',
-    'Transfers',
-    'Housing',
-    'Others',
-  ];
-
-  static const List<String> _availablePaymentMethods = [
-    'Cash',
-    'UPI',
-    'Card',
-    'Bank',
-  ];
 
   void _toggleSelection(int id) {
     setState(() {
@@ -82,24 +51,26 @@ class _HomePageState extends State<HomePage> {
       count: _selectedTransactionIds.length,
     );
     if (confirmed) {
+      final repo = ref.read(repositoryProvider);
       for (final id in _selectedTransactionIds) {
-        await widget.repository.delete(id);
+        await repo.delete(id);
       }
       _exitSelectionMode();
     }
   }
 
   void _openForm({bool isIncome = false, TransactionItem? item}) {
+    final repo = ref.read(repositoryProvider);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => item != null
             ? TransactionFormPage(
-                repository: widget.repository,
+                repository: repo,
                 isEditing: true,
                 initialItem: item,
               )
             : TransactionFormPage(
-                repository: widget.repository,
+                repository: repo,
                 initialIsIncome: isIncome,
               ),
       ),
@@ -109,6 +80,11 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final groups = ref.watch(groupedTransactionsProvider);
+    final balances = ref.watch(runningBalancesProvider);
+    final summary = ref.watch(summaryProvider);
+    final isLoading = ref.watch(transactionsStreamProvider).isLoading;
 
     return PopScope(
       canPop: !_isSelectionMode,
@@ -138,76 +114,51 @@ class _HomePageState extends State<HomePage> {
               : null,
         ),
         body: SafeArea(
-          child: StreamBuilder<List<TransactionItem>>(
-            stream: widget.repository.watchAll(),
-            builder: (context, snapshot) {
-              final items = snapshot.data ?? const <TransactionItem>[];
-              final filtered = applyFilter(items, _filterState);
-              final groups = groupTransactions(filtered);
-              final balances = computeRunningBalances(filtered);
-
-              final totalIncome = filtered
-                  .where((i) => i.isIncome)
-                  .fold(0.0, (sum, i) => sum + i.amount);
-              final totalExpense = filtered
-                  .where((i) => !i.isIncome)
-                  .fold(0.0, (sum, i) => sum + i.amount);
-
-              return CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: FilterRow(
-                      filterState: _filterState,
-                      onFilterChanged: (s) =>
-                          setState(() => _filterState = s),
-                      availableCategories: _availableCategories,
-                      availablePaymentMethods: _availablePaymentMethods,
+          child: CustomScrollView(
+            slivers: [
+              const SliverToBoxAdapter(child: FilterRow()),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: SummaryCard(
+                    netBalance: summary.netBalance,
+                    totalIncome: summary.totalIncome,
+                    totalExpense: summary.totalExpense,
+                  ),
+                ),
+              ),
+              if (groups.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Text(
+                      isLoading
+                          ? 'Loading transactions...'
+                          : 'No transactions for this period',
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                      child: SummaryCard(
-                        netBalance: totalIncome - totalExpense,
-                        totalIncome: totalIncome,
-                        totalExpense: totalExpense,
-                      ),
-                    ),
-                  ),
-                  if (groups.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Text(
-                          snapshot.connectionState == ConnectionState.waiting
-                              ? 'Loading transactions...'
-                              : 'No transactions for this period',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                    )
-                  else
-                    GroupedTransactionSliver(
-                      groups: groups,
-                      balances: balances,
-                      selectedIds: _selectedTransactionIds,
-                      isSelectionMode: _isSelectionMode,
-                      onTap: (item) {
-                        if (_isSelectionMode) {
-                          _toggleSelection(item.id!);
-                        } else {
-                          _openForm(item: item);
-                        }
-                      },
-                      onLongPress: (item) {
-                        if (!_isSelectionMode && item.id != null) {
-                          _startSelectionMode(item.id!);
-                        }
-                      },
-                    ),
-                ],
-              );
-            },
+                )
+              else
+                GroupedTransactionSliver(
+                  groups: groups,
+                  balances: balances,
+                  selectedIds: _selectedTransactionIds,
+                  isSelectionMode: _isSelectionMode,
+                  onTap: (item) {
+                    if (_isSelectionMode) {
+                      _toggleSelection(item.id!);
+                    } else {
+                      _openForm(item: item);
+                    }
+                  },
+                  onLongPress: (item) {
+                    if (!_isSelectionMode && item.id != null) {
+                      _startSelectionMode(item.id!);
+                    }
+                  },
+                ),
+            ],
           ),
         ),
         bottomNavigationBar: HomeBottomBar(

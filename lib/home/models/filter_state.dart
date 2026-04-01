@@ -1,3 +1,5 @@
+enum TransactionTypeFilter { all, income, expense }
+
 class FilterState {
   const FilterState({
     this.dateFilter = 'All Time',
@@ -5,7 +7,7 @@ class FilterState {
     this.customEndDate,
     this.categories = const [],
     this.paymentMethods = const [],
-    this.transactionType,
+    this.transactionType = TransactionTypeFilter.all,
   });
 
   final String dateFilter;
@@ -13,20 +15,20 @@ class FilterState {
   final DateTime? customEndDate;
   final List<String> categories;
   final List<String> paymentMethods;
-  final List<String>? transactionType; // ['Money In'], ['Money Out'], both, or null
+  final TransactionTypeFilter transactionType;
 
   bool get hasActiveFilters =>
       dateFilter != 'All Time' ||
       categories.isNotEmpty ||
       paymentMethods.isNotEmpty ||
-      (transactionType != null && transactionType!.isNotEmpty && transactionType!.length != 2);
+      transactionType != TransactionTypeFilter.all;
 
   int get activeFilterCount {
     int count = 0;
     if (dateFilter != 'All Time') count++;
     if (categories.isNotEmpty) count++;
     if (paymentMethods.isNotEmpty) count++;
-    if (transactionType != null && transactionType!.isNotEmpty && transactionType!.length != 2) count++;
+    if (transactionType != TransactionTypeFilter.all) count++;
     return count;
   }
 
@@ -36,23 +38,19 @@ class FilterState {
     DateTime? Function()? customEndDate,
     List<String>? categories,
     List<String>? paymentMethods,
-    List<String>? Function()? transactionType,
+    TransactionTypeFilter? transactionType,
   }) {
     return FilterState(
       dateFilter: dateFilter ?? this.dateFilter,
       customStartDate:
           customStartDate != null ? customStartDate() : this.customStartDate,
-      customEndDate: customEndDate != null ? customEndDate() : this.customEndDate,
+      customEndDate:
+          customEndDate != null ? customEndDate() : this.customEndDate,
       categories: categories ?? this.categories,
       paymentMethods: paymentMethods ?? this.paymentMethods,
-      transactionType:
-          transactionType != null ? transactionType() : this.transactionType,
+      transactionType: transactionType ?? this.transactionType,
     );
   }
 
-  void clear() {}
-
-  FilterState cleared() {
-    return const FilterState();
-  }
+  FilterState cleared() => const FilterState();
 }

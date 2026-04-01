@@ -1,23 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:spendwise/home/models/filter_state.dart';
+import 'package:spendwise/home/models/filter_state.dart'
+    show FilterState, TransactionTypeFilter;
 import 'package:spendwise/home/widgets/all_filters_bottom_sheet.dart';
 import 'package:spendwise/home/widgets/filter_dropdown.dart';
 import 'package:spendwise/home/utils/formatters.dart';
+import 'package:spendwise/providers.dart';
 
-class FilterRow extends StatelessWidget {
-  const FilterRow({
-    super.key,
-    required this.filterState,
-    required this.onFilterChanged,
-    required this.availableCategories,
-    required this.availablePaymentMethods,
-  });
-
-  final FilterState filterState;
-  final ValueChanged<FilterState> onFilterChanged;
-  final List<String> availableCategories;
-  final List<String> availablePaymentMethods;
+class FilterRow extends ConsumerWidget {
+  const FilterRow({super.key});
 
   static const List<String> _dateFilters = [
     'All Time',
@@ -28,81 +20,56 @@ class FilterRow extends StatelessWidget {
     'Custom Range',
   ];
 
-  static const List<String> _transactionTypes = [
-    'Money In',
-    'Money Out',
-  ];
+  static const List<String> _transactionTypes = ['Money In', 'Money Out'];
 
-  Future<void> _showAllFiltersBottomSheet(BuildContext context) async {
-    final result = await showModalBottomSheet<FilterState>(
+  void _showAllFiltersBottomSheet(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AllFiltersBottomSheet(
-        initialFilters: filterState,
-        availableCategories: availableCategories,
-        availablePaymentMethods: availablePaymentMethods,
-      ),
+      builder: (context) => const AllFiltersBottomSheet(),
     );
-
-    if (result != null) {
-      onFilterChanged(result);
-    }
   }
 
   Future<void> _handleDateFilterChanged(
     BuildContext context,
+    WidgetRef ref,
     List<String> selected,
   ) async {
     if (selected.isEmpty) return;
     final value = selected.first;
+    final filterState = ref.read(filterStateProvider);
+    final notifier = ref.read(filterStateProvider.notifier);
 
     if (value == 'Custom Range') {
-      final picked = await _showCustomRangeDialog(context);
-
+      final picked = await _showCustomRangeDialog(context, filterState);
       if (picked != null) {
-        final start = DateTime(picked.start.year, picked.start.month, picked.start.day);
+        final start =
+            DateTime(picked.start.year, picked.start.month, picked.start.day);
         final end = DateTime(
-          picked.end.year,
-          picked.end.month,
-          picked.end.day,
-          23,
-          59,
-          59,
-          999,
-        );
-        onFilterChanged(
-          filterState.copyWith(
-            dateFilter: 'Custom Range',
-            customStartDate: () => start,
-            customEndDate: () => end,
-          ),
-        );
+            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59, 999);
+        notifier.update(filterState.copyWith(
+          dateFilter: 'Custom Range',
+          customStartDate: () => start,
+          customEndDate: () => end,
+        ));
       }
       return;
     }
 
-    onFilterChanged(
-      filterState.copyWith(
-        dateFilter: value,
-        customStartDate: () => null,
-        customEndDate: () => null,
-      ),
-    );
+    notifier.update(filterState.copyWith(
+      dateFilter: value,
+      customStartDate: () => null,
+      customEndDate: () => null,
+    ));
   }
 
   void _showDateRangeErrorToast(BuildContext context) {
     final fToast = FToast()..init(context);
     fToast.showToast(
       toastDuration: const Duration(seconds: 2),
-      positionedToastBuilder: (context, child, _) {
-        return Positioned(
-          left: 24,
-          right: 24,
-          bottom: 100,
-          child: child,
-        );
-      },
+      positionedToastBuilder: (context, child, _) =>
+          Positioned(left: 24, right: 24, bottom: 100, child: child),
       child: Material(
         color: Colors.transparent,
         child: Container(
@@ -115,162 +82,150 @@ class FilterRow extends StatelessWidget {
             'Start date must be before end date',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       ),
     );
   }
 
-  Future<DateTimeRange?> _showCustomRangeDialog(BuildContext context) async {
+  Future<DateTimeRange?> _showCustomRangeDialog(
+    BuildContext context,
+    FilterState filterState,
+  ) async {
     final now = DateTime.now();
     DateTime startDate =
         filterState.customStartDate ?? DateTime(now.year, now.month, now.day);
-    DateTime endDate =
-        filterState.customEndDate ?? DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+    DateTime endDate = filterState.customEndDate ??
+        DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
     return showDialog<DateTimeRange>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Custom Date Range'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Custom Date Range'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: startDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(now.year + 10),
+                  );
+                  if (picked != null) {
+                    setDialogState(() {
+                      startDate =
+                          DateTime(picked.year, picked.month, picked.day);
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text('Start: ${formatDate(startDate)}'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: endDate,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(now.year + 10),
+                  );
+                  if (picked != null) {
+                    setDialogState(() {
+                      endDate = DateTime(
+                          picked.year, picked.month, picked.day, 23, 59, 59, 999);
+                    });
+                  }
+                },
+                icon: const Icon(Icons.calendar_today, size: 16),
+                label: Text('End: ${formatDate(endDate)}'),
+              ),
+            ],
+          ),
+          actions: [
+            SizedBox(
+              width: MediaQuery.of(context).size.width,
+              child: Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: startDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(now.year + 10),
-                      );
-                      if (picked != null) {
-                        setDialogState(() {
-                          startDate = DateTime(picked.year, picked.month, picked.day);
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    label: Text('Start: ${formatDate(startDate)}'),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        icon: const Icon(Icons.close, size: 20),
+                        label: const Text('Cancel',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onSurface,
+                          side: BorderSide(
+                              color: Colors.grey.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: endDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(now.year + 10),
-                      );
-                      if (picked != null) {
-                        setDialogState(() {
-                          endDate = DateTime(
-                            picked.year,
-                            picked.month,
-                            picked.day,
-                            23,
-                            59,
-                            59,
-                            999,
-                          );
-                        });
-                      }
-                    },
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    label: Text('End: ${formatDate(endDate)}'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextButton.icon(
+                        onPressed: () {
+                          if (startDate.isAfter(endDate)) {
+                            _showDateRangeErrorToast(context);
+                            return;
+                          }
+                          Navigator.of(dialogContext).pop(
+                              DateTimeRange(start: startDate, end: endDate));
+                        },
+                        icon:
+                            const Icon(Icons.check, color: Colors.white, size: 20),
+                        label: const Text('Apply',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600)),
+                        style: TextButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 10)),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              actions: [
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 44,
-                          child: OutlinedButton.icon(
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                            icon: const Icon(Icons.close, size: 20),
-                            label: const Text(
-                              'Cancel',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Theme.of(context).colorScheme.onSurface,
-                              side: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withValues(alpha: 0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: TextButton.icon(
-                            onPressed: () {
-                              // Validate that start date is not after end date
-                              if (startDate.isAfter(endDate)) {
-                                _showDateRangeErrorToast(context);
-                                return;
-                              }
-                              Navigator.of(dialogContext).pop(
-                                DateTimeRange(start: startDate, end: endDate),
-                              );
-                            },
-                            icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                            label: const Text(
-                              'Apply',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final filterState = ref.watch(filterStateProvider);
+    final notifier = ref.read(filterStateProvider.notifier);
 
     return SizedBox(
       height: 48,
@@ -290,11 +245,8 @@ class FilterRow extends StatelessWidget {
                 border: Border.all(color: theme.colorScheme.primary),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                Icons.filter_alt,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
+              child: Icon(Icons.filter_alt,
+                  size: 16, color: theme.colorScheme.primary),
             ),
           ),
           const SizedBox(width: 8),
@@ -304,7 +256,8 @@ class FilterRow extends StatelessWidget {
             label: _getDateFilterLabel(filterState),
             items: _dateFilters,
             selectedItems: [filterState.dateFilter],
-            onChanged: (selected) => _handleDateFilterChanged(context, selected),
+            onChanged: (selected) =>
+                _handleDateFilterChanged(context, ref, selected),
             highlightWhenSelected: filterState.dateFilter != 'All Time',
           ),
           const SizedBox(width: 8),
@@ -313,11 +266,12 @@ class FilterRow extends StatelessWidget {
             label: 'Categories',
             items: availableCategories,
             selectedItems: filterState.categories,
-            onChanged: (selected) {
-              onFilterChanged(filterState.copyWith(categories: selected));
-            },
+            onChanged: (selected) =>
+                notifier.update(filterState.copyWith(categories: selected)),
             isMultiSelect: true,
-            badge: filterState.categories.isNotEmpty ? filterState.categories.length : null,
+            badge: filterState.categories.isNotEmpty
+                ? filterState.categories.length
+                : null,
             showIcon: false,
             showAllOption: true,
           ),
@@ -327,11 +281,12 @@ class FilterRow extends StatelessWidget {
             label: 'Payment',
             items: availablePaymentMethods,
             selectedItems: filterState.paymentMethods,
-            onChanged: (selected) {
-              onFilterChanged(filterState.copyWith(paymentMethods: selected));
-            },
+            onChanged: (selected) =>
+                notifier.update(filterState.copyWith(paymentMethods: selected)),
             isMultiSelect: true,
-            badge: filterState.paymentMethods.isNotEmpty ? filterState.paymentMethods.length : null,
+            badge: filterState.paymentMethods.isNotEmpty
+                ? filterState.paymentMethods.length
+                : null,
             showIcon: false,
             showAllOption: true,
           ),
@@ -340,14 +295,12 @@ class FilterRow extends StatelessWidget {
           FilterDropdown(
             label: _getTypeFilterLabel(filterState.transactionType),
             items: _transactionTypes,
-            selectedItems: filterState.transactionType ?? [],
-            onChanged: (selected) {
-              onFilterChanged(
-                filterState.copyWith(
-                  transactionType: () => selected.isEmpty || selected.length == 2 ? null : selected,
-                ),
-              );
-            },
+            selectedItems: _typeToSelectedItems(filterState.transactionType),
+            onChanged: (selected) => notifier.update(
+              filterState.copyWith(
+                transactionType: _selectedItemsToType(selected),
+              ),
+            ),
             isMultiSelect: true,
             showIcon: false,
             showAllOption: true,
@@ -356,7 +309,7 @@ class FilterRow extends StatelessWidget {
           // Clear All button
           if (filterState.hasActiveFilters)
             InkWell(
-              onTap: () => onFilterChanged(filterState.cleared()),
+              onTap: () => notifier.reset(),
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 32,
@@ -369,11 +322,7 @@ class FilterRow extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.clear,
-                      size: 16,
-                      color: theme.colorScheme.error,
-                    ),
+                    Icon(Icons.clear, size: 16, color: theme.colorScheme.error),
                     const SizedBox(width: 6),
                     Text(
                       'Clear All',
@@ -391,22 +340,35 @@ class FilterRow extends StatelessWidget {
     );
   }
 
-  static String _getTypeFilterLabel(List<String>? transactionType) {
-    if (transactionType == null || transactionType.isEmpty || transactionType.length == 2) {
-      return 'Type';
+  static String _getTypeFilterLabel(TransactionTypeFilter type) {
+    return switch (type) {
+      TransactionTypeFilter.all => 'Type',
+      TransactionTypeFilter.income => 'Money In',
+      TransactionTypeFilter.expense => 'Money Out',
+    };
+  }
+
+  static List<String> _typeToSelectedItems(TransactionTypeFilter type) {
+    return switch (type) {
+      TransactionTypeFilter.all => [],
+      TransactionTypeFilter.income => ['Money In'],
+      TransactionTypeFilter.expense => ['Money Out'],
+    };
+  }
+
+  static TransactionTypeFilter _selectedItemsToType(List<String> selected) {
+    if (selected.isEmpty || selected.length == 2) {
+      return TransactionTypeFilter.all;
     }
-    return transactionType.first;
+    return selected.first == 'Money In'
+        ? TransactionTypeFilter.income
+        : TransactionTypeFilter.expense;
   }
 
   static String _getDateFilterLabel(FilterState filterState) {
-    if (filterState.dateFilter != 'Custom Range') {
-      return filterState.dateFilter;
-    }
-    if (filterState.customStartDate == null || filterState.customEndDate == null) {
-      return 'Custom Range';
-    }
-    final start = formatDate(filterState.customStartDate!);
-    final end = formatDate(filterState.customEndDate!);
-    return '$start - $end';
+    if (filterState.dateFilter != 'Custom Range') return filterState.dateFilter;
+    if (filterState.customStartDate == null ||
+        filterState.customEndDate == null) return 'Custom Range';
+    return '${formatDate(filterState.customStartDate!)} - ${formatDate(filterState.customEndDate!)}';
   }
 }

@@ -9,10 +9,10 @@
 
 ## State Management
 
-- [ ] Introduce a state management solution (Riverpod or Provider) to replace manual `setState()` across the app
-- [ ] Memoize the running balance calculation — currently recomputed on every `build()` call
-- [ ] Replace the three-representation `transactionType` field in `FilterState` (null / empty list / length-2 list all mean "show all") with an enum
-- [ ] Remove the empty no-op `clear()` method from `FilterState`
+- [x] Introduce a state management solution (Riverpod or Provider) to replace manual `setState()` across the app
+- [x] Memoize the running balance calculation — currently recomputed on every `build()` call
+- [x] Replace the three-representation `transactionType` field in `FilterState` (null / empty list / length-2 list all mean "show all") with an enum
+- [x] Remove the empty no-op `clear()` method from `FilterState`
 
 ## Data Layer
 

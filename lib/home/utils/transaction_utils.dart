@@ -55,10 +55,13 @@ List<TransactionItem> applyFilter(
       return false;
     }
 
-    final type = filterState.transactionType;
-    if (type != null && type.isNotEmpty && type.length != 2) {
-      if (type.contains('Money In') && !item.isIncome) return false;
-      if (type.contains('Money Out') && item.isIncome) return false;
+    switch (filterState.transactionType) {
+      case TransactionTypeFilter.income:
+        if (!item.isIncome) return false;
+      case TransactionTypeFilter.expense:
+        if (item.isIncome) return false;
+      case TransactionTypeFilter.all:
+        break;
     }
 
     return true;

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/app.dart';
 
 void main() {
-  runApp(const SpendWiseApp());
+  runApp(const ProviderScope(child: SpendWiseApp()));
 }
 
 class SpendWiseApp extends StatelessWidget {
