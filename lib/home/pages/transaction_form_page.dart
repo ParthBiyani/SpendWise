@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
-import 'package:spendwise/home/utils/formatters.dart';
-import 'package:spendwise/home/widgets/category_payment_widgets.dart';
+import 'package:spendwise/home/widgets/form/amount_field.dart';
+import 'package:spendwise/home/widgets/form/category_selector.dart';
+import 'package:spendwise/home/widgets/form/payment_method_selector.dart';
+import 'package:spendwise/home/widgets/form/transaction_datetime_row.dart';
 
 class TransactionFormPage extends StatefulWidget {
   const TransactionFormPage({
@@ -29,16 +31,14 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   final _amountController = TextEditingController();
   final _referenceIdController = TextEditingController();
   final _entryByController = TextEditingController(text: 'You');
-  late FocusNode _amountFocusNode;
 
   bool _isIncome = true;
   DateTime _selectedDateTime = DateTime.now();
-
   String? _selectedCategory;
   String? _selectedPaymentMethod;
 
-  // Category to Classification Mapping
-  final Map<String, String> _categoryClassification = const {
+  // Category to classification mapping
+  static const Map<String, String> _categoryClassification = {
     'Income': 'Others',
     'Dining': 'Desire',
     'Snacks': 'Desire',
@@ -58,20 +58,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     'Others': 'Desire',
   };
 
-  final List<String> _paymentMethods = const [
-    'Cash',
-    'UPI',
-    'Card',
-    'Bank',
-  ];
+  static const List<String> _paymentMethods = ['Cash', 'UPI', 'Card', 'Bank'];
 
   @override
   void initState() {
     super.initState();
-    _amountFocusNode = FocusNode();
-    _amountFocusNode.addListener(() {
-      setState(() {});
-    });
     final initial = widget.initialItem;
     if (initial != null) {
       _isIncome = initial.isIncome;
@@ -93,7 +84,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     _amountController.dispose();
     _referenceIdController.dispose();
     _entryByController.dispose();
-    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -120,11 +110,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   }
 
   Future<void> _pickTime() async {
-    final TimeOfDay initialTime = TimeOfDay.fromDateTime(_selectedDateTime);
     final theme = Theme.of(context);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: initialTime,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -162,18 +151,15 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       _showErrorToast('Enter amount');
       return;
     }
-
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
       _showErrorToast('Enter a valid amount');
       return;
     }
-
     if (_selectedCategory == null) {
       _showErrorToast('Select a category');
       return;
     }
-
     if (_selectedPaymentMethod == null) {
       _showErrorToast('Select a payment method');
       return;
@@ -191,7 +177,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         isIncome: _isIncome,
         paymentMethod: _selectedPaymentMethod!,
         referenceId: _referenceIdController.text,
-        entryBy: _entryByController.text.trim().isEmpty ? 'You' : _entryByController.text.trim(),
+        entryBy: _entryByController.text.trim().isEmpty
+            ? 'You'
+            : _entryByController.text.trim(),
       );
 
       final isEditing = widget.isEditing || widget.initialItem != null;
@@ -201,13 +189,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         await widget.repository.add(item);
       }
 
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) {
-        _showErrorToast('Error saving transaction: $e');
-      }
+      if (mounted) _showErrorToast('Error saving transaction: $e');
     }
   }
 
@@ -245,37 +229,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     );
   }
 
-  List<CategoryOption> _sortedCategoryOptions(List<TransactionItem> items) {
-    final counts = <String, int>{};
-    for (final item in items) {
-      counts[item.category] = (counts[item.category] ?? 0) + 1;
-    }
-
-    final order = <String, int>{};
-    for (var i = 0; i < categoryOptions.length; i++) {
-      order[categoryOptions[i].label] = i;
-    }
-
-    final options = [...categoryOptions];
-    options.sort((a, b) {
-      final countA = counts[a.label] ?? 0;
-      final countB = counts[b.label] ?? 0;
-      if (countA != countB) {
-        return countB.compareTo(countA);
-      }
-      final orderA = order[a.label] ?? 0;
-      final orderB = order[b.label] ?? 0;
-      return orderA.compareTo(orderB);
-    });
-
-    return options;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dateLabel = formatDate(_selectedDateTime);
-    final timeLabel = formatTime(_selectedDateTime);
 
     return Scaffold(
       appBar: AppBar(
@@ -289,209 +245,44 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
-              // Date and Time row
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: _pickDate,
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 18,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            dateLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 30),
-                    GestureDetector(
-                      onTap: _pickTime,
-                      behavior: HitTestBehavior.opaque,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.schedule,
-                            size: 18,
-                            color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            timeLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              TransactionDateTimeRow(
+                dateTime: _selectedDateTime,
+                onPickDate: _pickDate,
+                onPickTime: _pickTime,
               ),
               _SegmentedToggle(
                 isIncome: _isIncome,
                 onChanged: (value) => setState(() => _isIncome = value),
               ),
               const SizedBox(height: 18),
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'ENTER AMOUNT',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          letterSpacing: 1.2,
-                          color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        ' *',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          letterSpacing: 1.2,
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '₹',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: _isIncome
-                              ? theme.colorScheme.tertiary
-                              : theme.colorScheme.error,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      SizedBox(
-                        width: 200,
-                        child: TextFormField(
-                          controller: _amountController,
-                          focusNode: _amountFocusNode,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.displaySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.primary,
-                          ),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            hintText: _amountFocusNode.hasFocus ? '' : '0.00',
-                            hintStyle: theme.textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                            ),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          onChanged: (value) {
-                            setState(() {});
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              AmountField(
+                isIncome: _isIncome,
+                controller: _amountController,
               ),
               const SizedBox(height: 18),
               _SectionHeader(title: 'Category', isRequired: true),
               const SizedBox(height: 10),
-              StreamBuilder<List<TransactionItem>>(
-                stream: widget.repository.watchAll(),
-                builder: (context, snapshot) {
-                  final items = snapshot.data ?? const <TransactionItem>[];
-                  final options = _sortedCategoryOptions(items);
-                  final hasCategorySelection = _selectedCategory != null;
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      const spacing = 16.0;
-                      final tileWidth = (constraints.maxWidth - (spacing * 4)) / 5;
-                      final tileSize = tileWidth.clamp(56.0, 72.0);
-                      return SizedBox(
-                        height: tileSize + 28,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: options.length,
-                          separatorBuilder: (_, __) => const SizedBox(width: spacing),
-                          itemBuilder: (context, index) {
-                            final option = options[index];
-                            final selected = _selectedCategory == option.label;
-                            return CategoryTile(
-                              label: option.label,
-                              icon: option.icon,
-                              size: tileSize,
-                              selected: selected,
-                              hasSelection: hasCategorySelection,
-                              selectedColor: theme.colorScheme.primary,
-                              onTap: () => setState(() => _selectedCategory = option.label),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                },
+              CategorySelector(
+                repository: widget.repository,
+                selectedCategory: _selectedCategory,
+                onCategorySelected: (cat) =>
+                    setState(() => _selectedCategory = cat),
               ),
               const SizedBox(height: 18),
               _SectionHeader(title: 'Payment method', isRequired: true),
               const SizedBox(height: 10),
-              SizedBox(
-                height: 48,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _paymentMethods.length + 1,
-                  separatorBuilder: (_, __) => const SizedBox(width: 15),
-                  itemBuilder: (context, index) {
-                    final hasPaymentSelection = _selectedPaymentMethod != null;
-                    if (index == _paymentMethods.length) {
-                      return _OutlinePill(
-                        label: 'Add',
-                        icon: Icons.add,
-                        dimmed: hasPaymentSelection,
-                        onTap: () {},
-                      );
-                    }
-                    final label = _paymentMethods[index];
-                    final selected = _selectedPaymentMethod == label;
-                    return FilledPill(
-                      label: label,
-                      icon: paymentMethodIcons[label],
-                      selected: selected,
-                      hasSelection: hasPaymentSelection,
-                      onTap: () {
-                        setState(() {
-                          _selectedPaymentMethod = label;
-                          // Clear reference ID if Cash is selected
-                          if (label == 'Cash') {
-                            _referenceIdController.clear();
-                          }
-                        });
-                      },
-                    );
-                  },
-                ),
+              PaymentMethodSelector(
+                paymentMethods: _paymentMethods,
+                selectedPaymentMethod: _selectedPaymentMethod,
+                onPaymentMethodSelected: (method) {
+                  setState(() {
+                    _selectedPaymentMethod = method;
+                    if (method == 'Cash') _referenceIdController.clear();
+                  });
+                },
               ),
               const SizedBox(height: 18),
-              _SectionHeader(title: 'Additional details'),
+              const _SectionHeader(title: 'Additional details'),
               const SizedBox(height: 10),
               SizedBox(
                 height: 52,
@@ -524,13 +315,15 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        color:
+                            theme.colorScheme.primary.withValues(alpha: 0.15),
                       ),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        color:
+                            theme.colorScheme.primary.withValues(alpha: 0.1),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -542,7 +335,8 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         width: 1.2,
                       ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
                   ),
                   style: TextStyle(
                     color: _selectedPaymentMethod == 'Cash'
@@ -557,15 +351,17 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 child: ElevatedButton(
                   onPressed: _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isIncome ? theme.colorScheme.tertiary : theme.colorScheme.error,
+                    backgroundColor: _isIncome
+                        ? theme.colorScheme.tertiary
+                        : theme.colorScheme.error,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: Text(widget.isEditing ? 'Save Changes' : 'Save Transaction'),
+                  child: Text(
+                      widget.isEditing ? 'Save Changes' : 'Save Transaction'),
                 ),
               ),
             ],
@@ -575,6 +371,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Private helpers — form-specific visual components
+// ---------------------------------------------------------------------------
 
 class _SegmentedToggle extends StatelessWidget {
   const _SegmentedToggle({
@@ -600,11 +400,14 @@ class _SegmentedToggle extends StatelessWidget {
           AnimatedAlign(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
-            alignment: isIncome ? Alignment.centerRight : Alignment.centerLeft,
+            alignment:
+                isIncome ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
               width: (MediaQuery.of(context).size.width - 32 - 8) / 2,
               decoration: BoxDecoration(
-                color: isIncome ? theme.colorScheme.tertiary : theme.colorScheme.error,
+                color: isIncome
+                    ? theme.colorScheme.tertiary
+                    : theme.colorScheme.error,
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
@@ -721,60 +524,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _OutlinePill extends StatelessWidget {
-  const _OutlinePill({
-    required this.label,
-    this.icon,
-    this.dimmed = false,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData? icon;
-  final bool dimmed;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dimmedColor = theme.colorScheme.primary.withValues(alpha: 0.7);
-    final textColor = dimmed ? dimmedColor : theme.colorScheme.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.25)),
-      ),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null)
-                Icon(
-                  icon,
-                  size: 16,
-                  color: textColor,
-                ),
-              if (icon != null) const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _PickerTile extends StatelessWidget {
   const _PickerTile({
     required this.label,
@@ -799,7 +548,8 @@ class _PickerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.12)),
+          border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.12)),
         ),
         child: Row(
           children: [
@@ -840,11 +590,13 @@ InputDecoration _inputDecoration(ThemeData theme, {required String label}) {
     fillColor: Colors.white,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+      borderSide:
+          BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
+      borderSide:
+          BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.15)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),

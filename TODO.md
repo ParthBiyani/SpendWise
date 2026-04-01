@@ -2,10 +2,10 @@
 
 ## Architecture & Separation of Concerns
 
-- [ ] Split `homepage.dart` (~560 lines) into smaller focused widgets — extract dialogs, filter logic, and balance calculation
-- [ ] Split `transaction_form_page.dart` (~565 lines) similarly
-- [ ] Remove direct `AppDatabase()` instantiation from `_HomePageState.initState()` — use dependency injection or a singleton
-- [ ] Extract the delete confirmation dialog from `homepage.dart` into its own widget file
+- [x] Split `homepage.dart` (~560 lines) into smaller focused widgets — extract dialogs, filter logic, and balance calculation
+- [x] Split `transaction_form_page.dart` (~565 lines) similarly
+- [x] Remove direct `AppDatabase()` instantiation from `_HomePageState.initState()` — use dependency injection or a singleton
+- [x] Extract the delete confirmation dialog from `homepage.dart` into its own widget file
 
 ## State Management
 
