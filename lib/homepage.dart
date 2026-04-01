@@ -7,6 +7,7 @@ import 'package:spendwise/home/widgets/filter_row.dart';
 import 'package:spendwise/home/widgets/grouped_transaction_sliver.dart';
 import 'package:spendwise/home/widgets/home_bottom_bar.dart';
 import 'package:spendwise/home/widgets/summary_card.dart';
+import 'package:spendwise/home/utils/toast_utils.dart';
 import 'package:spendwise/providers.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -74,10 +75,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
     if (confirmed) {
       final repo = ref.read(repositoryProvider);
-      for (final id in _selectedTransactionIds) {
-        await repo.delete(id);
+      try {
+        for (final id in _selectedTransactionIds) {
+          await repo.delete(id);
+        }
+        _exitSelectionMode();
+      } catch (e) {
+        if (mounted) showAppToast(context, 'Failed to delete transactions: $e');
       }
-      _exitSelectionMode();
     }
   }
 
@@ -152,7 +157,36 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ),
               ),
-              if (groups.isEmpty)
+              if (pageState.hasError)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.error_outline,
+                              size: 48, color: theme.colorScheme.error),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Failed to load transactions',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${pageState.error}',
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else if (groups.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(

@@ -5,10 +5,12 @@ class AmountField extends StatefulWidget {
     super.key,
     required this.isIncome,
     required this.controller,
+    this.validator,
   });
 
   final bool isIncome;
   final TextEditingController controller;
+  final String? Function(String?)? validator;
 
   @override
   State<AmountField> createState() => _AmountFieldState();
@@ -89,7 +91,11 @@ class _AmountFieldState extends State<AmountField> {
                     color: theme.colorScheme.primary.withValues(alpha: 0.2),
                   ),
                   contentPadding: EdgeInsets.zero,
+                  errorStyle: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
                 ),
+                validator: widget.validator,
                 onChanged: (_) => setState(() {}),
               ),
             ),

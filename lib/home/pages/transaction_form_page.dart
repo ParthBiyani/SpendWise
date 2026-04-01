@@ -126,22 +126,16 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   }
 
   Future<void> _submit() async {
-    final amountText = _amountController.text.trim();
-    if (amountText.isEmpty) {
-      showAppToast(context,'Enter amount');
-      return;
-    }
-    final amount = double.tryParse(amountText);
-    if (amount == null || amount <= 0) {
-      showAppToast(context,'Enter a valid amount');
-      return;
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final amount = double.parse(_amountController.text.trim());
+
     if (_selectedCategory == null) {
-      showAppToast(context,'Select a category');
+      showAppToast(context, 'Select a category');
       return;
     }
     if (_selectedPaymentMethod == null) {
-      showAppToast(context,'Select a payment method');
+      showAppToast(context, 'Select a payment method');
       return;
     }
 
@@ -205,6 +199,13 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               AmountField(
                 isIncome: _isIncome,
                 controller: _amountController,
+                validator: (value) {
+                  final text = value?.trim() ?? '';
+                  if (text.isEmpty) return 'Enter amount';
+                  final parsed = double.tryParse(text);
+                  if (parsed == null || parsed <= 0) return 'Enter a valid amount';
+                  return null;
+                },
               ),
               const SizedBox(height: 18),
               _SectionHeader(title: 'Category', isRequired: true),

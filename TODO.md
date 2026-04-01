@@ -31,10 +31,10 @@
 
 ## Error Handling
 
-- [ ] Handle `snapshot.hasError` in the `StreamBuilder` in `homepage.dart` — currently silently swallowed
-- [ ] Add `try/catch` to `_deleteSelectedTransactions()` — currently clears selection state even if deletion fails
-- [ ] Define custom exception types in the repository layer so callers don't receive raw Drift exceptions
-- [ ] Actually call `_formKey.currentState?.validate()` in `TransactionFormPage._submit()` — the form key is created but never used
+- [x] Handle `snapshot.hasError` in the `StreamBuilder` in `homepage.dart` — currently silently swallowed
+- [x] Add `try/catch` to `_deleteSelectedTransactions()` — currently clears selection state even if deletion fails
+- [x] Define custom exception types in the repository layer so callers don't receive raw Drift exceptions
+- [x] Actually call `_formKey.currentState?.validate()` in `TransactionFormPage._submit()` — the form key is created but never used
 
 ## Model Design
 
