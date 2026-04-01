@@ -43,9 +43,9 @@
 
 ## Performance
 
-- [ ] Add `const` constructors to eligible widgets in `all_filters_bottom_sheet.dart`, `transaction_form_page.dart`, and `filter_row.dart`
-- [ ] Fix the `FocusNode` listener in `TransactionFormPage` — calling `setState(() {})` on every focus change rebuilds the entire form
-- [ ] Optimize category usage sorting — currently watches all transactions on every stream event just to rank categories by frequency; move to a SQL `GROUP BY` query or cache the result
+- [x] Add `const` constructors to eligible widgets in `all_filters_bottom_sheet.dart`, `transaction_form_page.dart`, and `filter_row.dart`
+- [x] Fix the `FocusNode` listener in `TransactionFormPage` — calling `setState(() {})` on every focus change rebuilds the entire form
+- [x] Optimize category usage sorting — currently watches all transactions on every stream event just to rank categories by frequency; move to a SQL `GROUP BY` query or cache the result
 
 ## Accessibility
 

@@ -208,7 +208,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 },
               ),
               const SizedBox(height: 18),
-              _SectionHeader(title: 'Category', isRequired: true),
+              const _SectionHeader(title: 'Category', isRequired: true),
               const SizedBox(height: 10),
               CategorySelector(
                 repository: widget.repository,
@@ -217,7 +217,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     setState(() => _selectedCategory = cat),
               ),
               const SizedBox(height: 18),
-              _SectionHeader(title: 'Payment method', isRequired: true),
+              const _SectionHeader(title: 'Payment method', isRequired: true),
               const SizedBox(height: 10),
               PaymentMethodSelector(
                 paymentMethods: availablePaymentMethods,

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
-import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
 
-class CategorySelector extends StatelessWidget {
+class CategorySelector extends StatefulWidget {
   const CategorySelector({
     super.key,
     required this.repository,
@@ -15,21 +14,29 @@ class CategorySelector extends StatelessWidget {
   final String? selectedCategory;
   final ValueChanged<String> onCategorySelected;
 
-  List<CategoryOption> _sortedOptions(List<TransactionItem> items) {
-    final counts = <String, int>{};
-    for (final item in items) {
-      counts[item.category] = (counts[item.category] ?? 0) + 1;
-    }
-    final order = <String, int>{};
-    for (var i = 0; i < categoryOptions.length; i++) {
-      order[categoryOptions[i].label] = i;
-    }
+  @override
+  State<CategorySelector> createState() => _CategorySelectorState();
+}
+
+class _CategorySelectorState extends State<CategorySelector> {
+  late final Future<List<CategoryOption>> _sortedOptionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sortedOptionsFuture = _buildSortedOptions();
+  }
+
+  Future<List<CategoryOption>> _buildSortedOptions() async {
+    final counts = await widget.repository.fetchCategoryUsageCounts();
+    final defaultOrder = <String, int>{
+      for (var i = 0; i < categoryOptions.length; i++) categoryOptions[i].label: i,
+    };
     final options = [...categoryOptions];
     options.sort((a, b) {
-      final countA = counts[a.label] ?? 0;
-      final countB = counts[b.label] ?? 0;
-      if (countA != countB) return countB.compareTo(countA);
-      return (order[a.label] ?? 0).compareTo(order[b.label] ?? 0);
+      final countDiff = (counts[b.label] ?? 0).compareTo(counts[a.label] ?? 0);
+      if (countDiff != 0) return countDiff;
+      return (defaultOrder[a.label] ?? 0).compareTo(defaultOrder[b.label] ?? 0);
     });
     return options;
   }
@@ -37,12 +44,11 @@ class CategorySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return StreamBuilder<List<TransactionItem>>(
-      stream: repository.watchAll(),
+    return FutureBuilder<List<CategoryOption>>(
+      future: _sortedOptionsFuture,
       builder: (context, snapshot) {
-        final items = snapshot.data ?? const <TransactionItem>[];
-        final options = _sortedOptions(items);
-        final hasSelection = selectedCategory != null;
+        final options = snapshot.data ?? categoryOptions;
+        final hasSelection = widget.selectedCategory != null;
         return LayoutBuilder(
           builder: (context, constraints) {
             const spacing = 16.0;
@@ -60,10 +66,10 @@ class CategorySelector extends StatelessWidget {
                     label: option.label,
                     icon: option.icon,
                     size: tileSize,
-                    selected: selectedCategory == option.label,
+                    selected: widget.selectedCategory == option.label,
                     hasSelection: hasSelection,
                     selectedColor: theme.colorScheme.primary,
-                    onTap: () => onCategorySelected(option.label),
+                    onTap: () => widget.onCategorySelected(option.label),
                   );
                 },
               ),

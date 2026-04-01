@@ -63,6 +63,14 @@ class TransactionsRepository {
     }
   }
 
+  Future<Map<String, int>> fetchCategoryUsageCounts() async {
+    try {
+      return await _db.fetchCategoryUsageCounts();
+    } catch (e) {
+      throw TransactionReadException('Failed to fetch category usage counts', cause: e);
+    }
+  }
+
   Future<int> add(TransactionItem item) async {
     try {
       return await _db.addTransaction(_toCompanion(item));

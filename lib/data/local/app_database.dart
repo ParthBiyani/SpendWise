@@ -313,6 +313,14 @@ FROM "transactions";
     return query.get();
   }
 
+  Future<Map<String, int>> fetchCategoryUsageCounts() async {
+    final rows = await customSelect(
+      'SELECT category, COUNT(*) AS cnt FROM transactions GROUP BY category',
+      readsFrom: {transactions},
+    ).get();
+    return {for (final row in rows) row.read<String>('category'): row.read<int>('cnt')};
+  }
+
   Future<int> addTransaction(TransactionsCompanion entry) {
     return into(transactions).insert(entry);
   }
