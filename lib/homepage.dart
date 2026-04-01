@@ -118,7 +118,7 @@ class _HomePageState extends State<HomePage> {
       }
 
       // Apply transaction type filter
-      if (_filterState.transactionType != null && 
+      if (_filterState.transactionType != null &&
           _filterState.transactionType!.isNotEmpty &&
           _filterState.transactionType!.length != 2) {
         if (_filterState.transactionType!.contains('Money In') && !item.isIncome) {
