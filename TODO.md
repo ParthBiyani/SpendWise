@@ -56,8 +56,8 @@
 
 ## Linting & Code Quality
 
-- [ ] Enable lint rules in `analysis_options.yaml`: `avoid_print`, `prefer_single_quotes`, `prefer_const_constructors`, `prefer_const_declarations`, `unnecessary_lambdas`
-- [ ] Replace raw hex color constants in `main.dart` with a dedicated theme/constants file
+- [x] Enable lint rules in `analysis_options.yaml`: `avoid_print`, `prefer_single_quotes`, `prefer_const_constructors`, `prefer_const_declarations`, `unnecessary_lambdas`
+- [x] Replace raw hex color constants in `main.dart` with a dedicated theme/constants file
 
 ## Testing
 

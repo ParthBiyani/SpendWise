@@ -285,7 +285,7 @@ class FilterRow extends ConsumerWidget {
           // Clear All button
           if (filterState.hasActiveFilters)
             InkWell(
-              onTap: () => notifier.reset(),
+              onTap: notifier.reset,
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 32,

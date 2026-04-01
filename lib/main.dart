@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/app.dart';
+import 'package:spendwise/config/constants.dart'
+    show appPrimaryColor, appIncomeColor, appExpenseColor;
 
 void main() {
   runApp(const ProviderScope(child: SpendWiseApp()));
@@ -9,20 +11,16 @@ void main() {
 class SpendWiseApp extends StatelessWidget {
   const SpendWiseApp({super.key});
 
-  static const Color _accentColor = Color(0xFF1E394E);
-  static const Color _incomeColor = Color(0xFF1A7A44);
-  static const Color _expenseColor = Color(0xFFC0392B);
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SpendWise',
       theme: ThemeData(
         colorScheme: const ColorScheme.light(
-          primary: _accentColor,
-          secondary: _accentColor,
-          tertiary: _incomeColor,
-          error: _expenseColor,
+          primary: appPrimaryColor,
+          secondary: appPrimaryColor,
+          tertiary: appIncomeColor,
+          error: appExpenseColor,
           surface: Colors.white,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
