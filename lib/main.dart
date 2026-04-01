@@ -10,8 +10,8 @@ class SpendWiseApp extends StatelessWidget {
   const SpendWiseApp({super.key});
 
   static const Color _accentColor = Color(0xFF1E394E);
-  static const Color _incomeColor = Color(0xFF27AE60);
-  static const Color _expenseColor = Color(0xFFE74C3C);
+  static const Color _incomeColor = Color(0xFF1A7A44);
+  static const Color _expenseColor = Color(0xFFC0392B);
 
   @override
   Widget build(BuildContext context) {

@@ -49,10 +49,10 @@
 
 ## Accessibility
 
-- [ ] Add `Semantics` labels to `TransactionTile` (transaction description, amount, selection state)
-- [ ] Add `Semantics` labels to the summary card values
-- [ ] Replace hardcoded `Colors.red.shade700` with `theme.colorScheme.error`
-- [ ] Verify color contrast on all text-on-colored-background combinations (WCAG AA)
+- [x] Add `Semantics` labels to `TransactionTile` (transaction description, amount, selection state)
+- [x] Add `Semantics` labels to the summary card values
+- [x] Replace hardcoded `Colors.red.shade700` with `theme.colorScheme.error`
+- [x] Verify color contrast on all text-on-colored-background combinations (WCAG AA)
 
 ## Linting & Code Quality
 

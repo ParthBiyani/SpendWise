@@ -19,7 +19,13 @@ class SummaryCard extends StatelessWidget {
     final netTextStyle = theme.textTheme.headlineLarge?.copyWith(
       fontWeight: FontWeight.w700,
     );
-    return Card(
+    return Semantics(
+      label: 'Summary card. '
+          'Net balance ${formatCurrency(netBalance)}. '
+          'Net income ${formatCurrency(totalIncome)}. '
+          'Net expenses ${formatCurrency(totalExpense)}.',
+      excludeSemantics: true,
+      child: Card(
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -48,7 +54,7 @@ class SummaryCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

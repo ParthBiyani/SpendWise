@@ -27,7 +27,24 @@ class TransactionTile extends StatelessWidget {
     final amountColor = item.isIncome ? theme.colorScheme.tertiary : theme.colorScheme.error;
     final formattedBalanceAfter = formatCurrency(balanceAfter, prefix: '');
     final categoryIcon = categoryIcons[item.category] ?? Icons.category;
-    return Card(
+
+    final amountLabel =
+        '${item.isIncome ? 'Income' : 'Expense'} ${formatCurrency(item.amount, prefix: '')}';
+    final remarksLabel =
+        (item.remarks != null && item.remarks!.isNotEmpty) ? ', ${item.remarks}' : '';
+    final selectionLabel = isSelectionMode
+        ? (isSelected ? ', selected' : ', not selected')
+        : '';
+    final semanticLabel =
+        '${item.category}$remarksLabel, $amountLabel, '
+        'balance ${formatCurrency(balanceAfter, prefix: '')}$selectionLabel';
+
+    return Semantics(
+      label: semanticLabel,
+      selected: isSelectionMode ? isSelected : null,
+      button: onTap != null,
+      excludeSemantics: true,
+      child: Card(
       elevation: 0,
       color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.white,
       shape: RoundedRectangleBorder(
@@ -93,6 +110,6 @@ class TransactionTile extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

@@ -450,7 +450,7 @@ class _SectionHeader extends StatelessWidget {
                   style: theme.textTheme.labelSmall?.copyWith(
                     letterSpacing: 1.1,
                     fontWeight: FontWeight.w700,
-                    color: Colors.red,
+                    color: theme.colorScheme.error,
                   ),
                 ),
             ],

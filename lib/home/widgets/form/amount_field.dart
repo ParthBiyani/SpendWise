@@ -51,7 +51,7 @@ class _AmountFieldState extends State<AmountField> {
               ' *',
               style: theme.textTheme.labelSmall?.copyWith(
                 letterSpacing: 1.2,
-                color: Colors.red,
+                color: theme.colorScheme.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
