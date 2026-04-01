@@ -12,14 +12,14 @@ part 'app_database.g.dart';
 @TableIndex(name: 'idx_transactions_payment_method', columns: {#paymentMethod})
 class Transactions extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get remarks => text()();
+  TextColumn get remarks => text().nullable()();
   TextColumn get category => text()();
   TextColumn get classType => text()(); // Necessity, Desire, Investment, Others
   RealColumn get amount => real()();
   BoolColumn get isIncome => boolean()();
   TextColumn get paymentMethod => text()();
-  TextColumn get referenceId => text()();
-  TextColumn get entryBy => text()();
+  TextColumn get referenceId => text().nullable()();
+  TextColumn get entryBy => text().nullable()();
   DateTimeColumn get occurredAt => dateTime().named('date_time')();
 }
 
@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -101,7 +101,46 @@ FROM "transactions";
               'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions (payment_method);');
         }
 
-        // v4 → v5: (future migration — add steps here)
+        // v4 → v5: make remarks, reference_id, entry_by nullable
+        if (from <= 4 && to > 4) {
+          await m.database.customStatement('DROP TABLE IF EXISTS "transactions_new";');
+          await m.database.customStatement('''
+CREATE TABLE transactions_new (
+  "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  "remarks" TEXT,
+  "category" TEXT NOT NULL,
+  "class_type" TEXT NOT NULL,
+  "amount" REAL NOT NULL,
+  "is_income" INTEGER NOT NULL,
+  "payment_method" TEXT NOT NULL,
+  "reference_id" TEXT,
+  "entry_by" TEXT,
+  "date_time" INTEGER NOT NULL
+);
+''');
+          await m.database.customStatement('''
+INSERT INTO transactions_new (
+  "id", "remarks", "category", "class_type", "amount", "is_income",
+  "payment_method", "reference_id", "entry_by", "date_time"
+)
+SELECT
+  "id",
+  NULLIF("remarks", ''),
+  "category", "class_type", "amount", "is_income", "payment_method",
+  NULLIF("reference_id", ''),
+  NULLIF("entry_by", ''),
+  "date_time"
+FROM "transactions";
+''');
+          await m.database.customStatement('DROP TABLE "transactions";');
+          await m.database.customStatement('ALTER TABLE "transactions_new" RENAME TO "transactions";');
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_date_time ON transactions (date_time);');
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (category);');
+          await m.database.customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions (payment_method);');
+        }
       },
     );
   }

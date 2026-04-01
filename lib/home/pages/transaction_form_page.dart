@@ -49,10 +49,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       _selectedDateTime = initial.dateTime;
       _selectedCategory = initial.category;
       _selectedPaymentMethod = initial.paymentMethod;
-      _remarksController.text = initial.remarks;
+      _remarksController.text = initial.remarks ?? '';
       _amountController.text = initial.amount.toStringAsFixed(2);
-      _referenceIdController.text = initial.referenceId;
-      _entryByController.text = initial.entryBy;
+      _referenceIdController.text = initial.referenceId ?? '';
+      _entryByController.text = initial.entryBy ?? 'You';
     } else {
       _isIncome = widget.initialIsIncome ?? true;
     }

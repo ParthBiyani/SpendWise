@@ -38,8 +38,8 @@
 
 ## Model Design
 
-- [ ] Add `==` and `hashCode` overrides to `TransactionItem` — it is used as a map key in `homepage.dart` without them
-- [ ] Make nullable columns in the Drift schema explicit with `.nullable()` (e.g., `referenceId`, `entryBy`)
+- [x] Add `==` and `hashCode` overrides to `TransactionItem` — it is used as a map key in `homepage.dart` without them
+- [x] Make nullable columns in the Drift schema explicit with `.nullable()` (e.g., `referenceId`, `entryBy`)
 
 ## Performance
 

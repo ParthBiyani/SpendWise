@@ -59,13 +59,13 @@ class TransactionTile extends StatelessWidget {
               item.category,
               style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            if (item.remarks.isNotEmpty) ...[
+            if (item.remarks != null && item.remarks!.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(item.remarks, style: theme.textTheme.bodySmall),
+              Text(item.remarks!, style: theme.textTheme.bodySmall),
             ],
             const SizedBox(height: 8),
             Text(
-              '${item.entryBy} · ${formatTime(item.dateTime)}',
+              '${item.entryBy ?? 'You'} · ${formatTime(item.dateTime)}',
               style: theme.textTheme.labelSmall,
             ),
           ],
