@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spendwise/config/constants.dart';
 import 'package:spendwise/data/local/app_database.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/date_group.dart';
@@ -8,52 +9,21 @@ import 'package:spendwise/home/utils/transaction_utils.dart'
     show groupTransactions, computeRunningBalances;
 
 // ---------------------------------------------------------------------------
-// App-wide constants (previously static consts scattered across widgets)
+// App-wide convenience accessors derived from constants.dart
 // ---------------------------------------------------------------------------
 
-const List<String> availableCategories = [
-  'Income',
-  'Dining',
-  'Snacks',
-  'Shopping',
-  'Groceries',
-  'Travel',
-  'Bills',
-  'Health',
-  'Education',
-  'Investment',
-  'Personal Care',
-  'Entertainment',
-  'Gifts',
-  'EMIs',
-  'Transfers',
-  'Housing',
-  'Others',
-];
+/// Flat list of category names, in display order.
+final List<String> availableCategories =
+    categories.map((c) => c.name).toList();
 
-const List<String> availablePaymentMethods = ['Cash', 'UPI', 'Card', 'Bank'];
+/// Flat list of payment method names, in display order.
+final List<String> availablePaymentMethods =
+    paymentMethods.map((p) => p.name).toList();
 
-/// Maps every category to its class type (Necessity / Desire / Investment / Others).
-/// Single source of truth — used by the form when saving and by the v2→v3
-/// migration SQL (which is a frozen copy; this map governs live classification).
-const Map<String, String> categoryClassification = {
-  'Income': 'Others',
-  'Dining': 'Desire',
-  'Snacks': 'Desire',
-  'Shopping': 'Desire',
-  'Groceries': 'Necessity',
-  'Travel': 'Necessity',
-  'Bills': 'Necessity',
-  'Health': 'Necessity',
-  'Education': 'Investment',
-  'Investment': 'Investment',
-  'Personal Care': 'Necessity',
-  'Entertainment': 'Desire',
-  'Gifts': 'Desire',
-  'EMIs': 'Necessity',
-  'Transfers': 'Others',
-  'Housing': 'Necessity',
-  'Others': 'Desire',
+/// Maps every category name to its class type.
+/// Derived from [categories] — constants.dart is the single source of truth.
+final Map<String, String> categoryClassification = {
+  for (final c in categories) c.name: c.classType,
 };
 
 const int kPageSize = 30;

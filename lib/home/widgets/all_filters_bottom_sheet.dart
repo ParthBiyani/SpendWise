@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/home/models/filter_state.dart'
     show FilterState, TransactionTypeFilter;
 import 'package:spendwise/home/utils/formatters.dart';
+import 'package:spendwise/home/utils/toast_utils.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
 import 'package:spendwise/providers.dart';
 
@@ -68,30 +68,6 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
     });
   }
 
-  void _showDateRangeErrorToast(BuildContext context) {
-    final fToast = FToast()..init(context);
-    fToast.showToast(
-      toastDuration: const Duration(seconds: 2),
-      positionedToastBuilder: (context, child, _) =>
-          Positioned(left: 24, right: 24, bottom: 100, child: child),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Start date must be before end date',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -564,7 +540,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                                 _currentFilters.customEndDate != null) {
                               if (_currentFilters.customStartDate!
                                   .isAfter(_currentFilters.customEndDate!)) {
-                                _showDateRangeErrorToast(context);
+                                showAppToast(context, 'Start date must be before end date');
                                 return;
                               }
                             }

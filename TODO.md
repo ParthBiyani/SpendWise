@@ -24,9 +24,10 @@
 
 ## Constants & Code Duplication
 
-- [ ] Create `lib/config/constants.dart` (or enums) as a single source of truth for: category names, payment methods, class types, category icons
-- [ ] Remove duplicate category/payment method lists from `homepage.dart`, `transaction_form_page.dart`, `transaction_tile.dart`, and `category_payment_widgets.dart`
-- [ ] Extract the repeated toast-display logic into a shared utility function (currently copy-pasted in `filter_row.dart`, `all_filters_bottom_sheet.dart`, and `transaction_form_page.dart`)
+- [x] Create `lib/config/constants.dart` (or enums) as a single source of truth for: category names, payment methods, class types, category icons
+- [x] Remove duplicate category/payment method lists from `homepage.dart`, `transaction_form_page.dart`, `transaction_tile.dart`, and `category_payment_widgets.dart`
+- [x] Extract the repeated toast-display logic into a shared utility function (currently copy-pasted in `filter_row.dart`, 
+`all_filters_bottom_sheet.dart`, and `transaction_form_page.dart`)
 
 ## Error Handling
 

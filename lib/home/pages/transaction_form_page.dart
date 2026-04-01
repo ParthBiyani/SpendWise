@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/widgets/form/amount_field.dart';
 import 'package:spendwise/home/widgets/form/category_selector.dart';
 import 'package:spendwise/home/widgets/form/payment_method_selector.dart';
 import 'package:spendwise/home/widgets/form/transaction_datetime_row.dart';
+import 'package:spendwise/config/constants.dart' show cashPaymentMethod;
+import 'package:spendwise/home/utils/toast_utils.dart';
 import 'package:spendwise/providers.dart' show categoryClassification, availablePaymentMethods;
 
 class TransactionFormPage extends StatefulWidget {
@@ -127,20 +128,20 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   Future<void> _submit() async {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
-      _showErrorToast('Enter amount');
+      showAppToast(context,'Enter amount');
       return;
     }
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      _showErrorToast('Enter a valid amount');
+      showAppToast(context,'Enter a valid amount');
       return;
     }
     if (_selectedCategory == null) {
-      _showErrorToast('Select a category');
+      showAppToast(context,'Select a category');
       return;
     }
     if (_selectedPaymentMethod == null) {
-      _showErrorToast('Select a payment method');
+      showAppToast(context,'Select a payment method');
       return;
     }
 
@@ -170,43 +171,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      if (mounted) _showErrorToast('Error saving transaction: $e');
+      if (mounted) showAppToast(context,'Error saving transaction: $e');
     }
   }
 
-  void _showErrorToast(String message) {
-    final fToast = FToast()..init(context);
-    fToast.showToast(
-      toastDuration: const Duration(seconds: 2),
-      positionedToastBuilder: (context, child, _) {
-        return Positioned(
-          left: 24,
-          right: 24,
-          bottom: 100,
-          child: child,
-        );
-      },
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +224,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 onPaymentMethodSelected: (method) {
                   setState(() {
                     _selectedPaymentMethod = method;
-                    if (method == 'Cash') _referenceIdController.clear();
+                    if (method == cashPaymentMethod) _referenceIdController.clear();
                   });
                 },
               ),
@@ -276,17 +244,17 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 height: 52,
                 child: TextFormField(
                   controller: _referenceIdController,
-                  enabled: _selectedPaymentMethod != 'Cash',
+                  enabled: _selectedPaymentMethod != cashPaymentMethod,
                   decoration: InputDecoration(
                     labelText: 'Reference ID',
                     filled: true,
-                    fillColor: _selectedPaymentMethod == 'Cash'
+                    fillColor: _selectedPaymentMethod == cashPaymentMethod
                         ? theme.colorScheme.primary.withValues(alpha: 0.08)
                         : Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: _selectedPaymentMethod == 'Cash'
+                        color: _selectedPaymentMethod == cashPaymentMethod
                             ? theme.colorScheme.primary.withValues(alpha: 0.1)
                             : theme.colorScheme.primary.withValues(alpha: 0.15),
                       ),
@@ -308,7 +276,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(
-                        color: _selectedPaymentMethod == 'Cash'
+                        color: _selectedPaymentMethod == cashPaymentMethod
                             ? theme.colorScheme.primary.withValues(alpha: 0.4)
                             : theme.colorScheme.primary,
                         width: 1.2,
@@ -318,7 +286,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         horizontal: 14, vertical: 14),
                   ),
                   style: TextStyle(
-                    color: _selectedPaymentMethod == 'Cash'
+                    color: _selectedPaymentMethod == cashPaymentMethod
                         ? theme.colorScheme.primary.withValues(alpha: 0.4)
                         : theme.colorScheme.primary,
                   ),

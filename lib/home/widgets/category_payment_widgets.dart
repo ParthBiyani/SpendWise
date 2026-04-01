@@ -1,35 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:spendwise/config/constants.dart';
 
-/// Maps category names to their respective icons
-const Map<String, IconData> categoryIcons = {
-  'Income': Icons.currency_rupee,
-  'Dining': Icons.restaurant,
-  'Snacks': Icons.fastfood,
-  'Shopping': Icons.shopping_bag,
-  'Groceries': Icons.shopping_cart,
-  'Travel': Icons.directions_car,
-  'Bills': Icons.receipt_long,
-  'Health': Icons.health_and_safety,
-  'Education': Icons.school,
-  'Investment': Icons.trending_up,
-  'Personal Care': Icons.spa,
-  'Entertainment': Icons.movie,
-  'Gifts': Icons.card_giftcard,
-  'EMIs': Icons.payments,
-  'Transfers': Icons.swap_horiz,
-  'Housing': Icons.home,
-  'Others': Icons.category,
+/// Maps category names to their icons. Derived from [categories] in constants.dart.
+final Map<String, IconData> categoryIcons = {
+  for (final c in categories) c.name: c.icon,
 };
 
-/// Maps payment method names to their respective icons
-const Map<String, IconData> paymentMethodIcons = {
-  'Cash': Icons.payments,
-  'Card': Icons.credit_card,
-  'Bank': Icons.account_balance,
-  'UPI': Icons.qr_code,
+/// Maps payment method names to their icons. Derived from [paymentMethods] in constants.dart.
+final Map<String, IconData> paymentMethodIcons = {
+  for (final p in paymentMethods) p.name: p.icon,
 };
 
-/// Represents a category option with a label and icon
+/// Represents a category option with a label and icon.
 class CategoryOption {
   const CategoryOption(this.label, this.icon);
 
@@ -37,25 +19,9 @@ class CategoryOption {
   final IconData icon;
 }
 
-/// List of all available category options
-const List<CategoryOption> categoryOptions = [
-  CategoryOption('Income', Icons.currency_rupee),
-  CategoryOption('Dining', Icons.restaurant),
-  CategoryOption('Snacks', Icons.fastfood),
-  CategoryOption('Shopping', Icons.shopping_bag),
-  CategoryOption('Groceries', Icons.shopping_cart),
-  CategoryOption('Travel', Icons.directions_car),
-  CategoryOption('Bills', Icons.receipt_long),
-  CategoryOption('Health', Icons.health_and_safety),
-  CategoryOption('Education', Icons.school),
-  CategoryOption('Investment', Icons.trending_up),
-  CategoryOption('Personal Care', Icons.spa),
-  CategoryOption('Entertainment', Icons.movie),
-  CategoryOption('Gifts', Icons.card_giftcard),
-  CategoryOption('EMIs', Icons.payments),
-  CategoryOption('Transfers', Icons.swap_horiz),
-  CategoryOption('Housing', Icons.home),
-  CategoryOption('Others', Icons.category),
+/// All available category options, derived from [categories] in constants.dart.
+final List<CategoryOption> categoryOptions = [
+  for (final c in categories) CategoryOption(c.name, c.icon),
 ];
 
 /// A tile widget for displaying a category with an icon
