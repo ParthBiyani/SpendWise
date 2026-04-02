@@ -98,7 +98,6 @@ class TransactionTile extends StatelessWidget {
                 color: amountColor,
               ),
             ),
-            // const SizedBox(height: 4),
             Text(
               'Balance:',
               style: theme.textTheme.labelSmall,

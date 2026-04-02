@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:spendwise/config/constants.dart';
 
 part 'app_database.g.dart';
 
@@ -174,6 +175,8 @@ FROM "transactions";
       final conditions = <Expression<bool>>[];
 
       switch (dateFilter) {
+        case defaultDateFilter:
+          break;
         case 'Today':
           final start = DateTime(now.year, now.month, now.day);
           final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
@@ -256,6 +259,8 @@ FROM "transactions";
       final conditions = <Expression<bool>>[];
 
       switch (dateFilter) {
+        case defaultDateFilter:
+          break;
         case 'Today':
           final start = DateTime(now.year, now.month, now.day);
           final end = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);

@@ -75,6 +75,19 @@ const List<String> classTypes = [
   'Others',
 ];
 
+/// Available date filters shown across the app.
+const List<String> dateFilters = [
+  'All Time',
+  'Today',
+  'This Week',
+  'This Month',
+  'This Year',
+  'Custom Range',
+];
+
+/// Default date filter when no date constraint is applied.
+const String defaultDateFilter = 'All Time';
+
 /// Payment method name for cash — used to conditionally disable the reference
 /// ID field (cash transactions have no reference number).
 const String cashPaymentMethod = 'Cash';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spendwise/config/constants.dart';
 import 'package:spendwise/home/models/filter_state.dart'
     show FilterState, TransactionTypeFilter;
 import 'package:spendwise/home/utils/formatters.dart';
@@ -17,15 +18,6 @@ class AllFiltersBottomSheet extends ConsumerStatefulWidget {
 
 class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
   late FilterState _currentFilters;
-
-  static const List<String> _dateFilters = [
-    'All Time',
-    'Today',
-    'This Week',
-    'This Month',
-    'This Year',
-    'Custom Range',
-  ];
 
   static const List<String> _transactionTypes = ['Money In', 'Money Out'];
 
@@ -151,7 +143,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 0,
-                        children: _dateFilters.map((filter) {
+                        children: dateFilters.map((filter) {
                           final isSelected =
                               _currentFilters.dateFilter == filter;
                           return ChoiceChip(

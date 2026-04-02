@@ -1,8 +1,10 @@
+import 'package:spendwise/config/constants.dart';
+
 enum TransactionTypeFilter { all, income, expense }
 
 class FilterState {
   const FilterState({
-    this.dateFilter = 'All Time',
+    this.dateFilter = defaultDateFilter,
     this.customStartDate,
     this.customEndDate,
     this.categories = const [],
@@ -18,14 +20,14 @@ class FilterState {
   final TransactionTypeFilter transactionType;
 
   bool get hasActiveFilters =>
-      dateFilter != 'All Time' ||
+      dateFilter != defaultDateFilter ||
       categories.isNotEmpty ||
       paymentMethods.isNotEmpty ||
       transactionType != TransactionTypeFilter.all;
 
   int get activeFilterCount {
     int count = 0;
-    if (dateFilter != 'All Time') count++;
+    if (dateFilter != defaultDateFilter) count++;
     if (categories.isNotEmpty) count++;
     if (paymentMethods.isNotEmpty) count++;
     if (transactionType != TransactionTypeFilter.all) count++;

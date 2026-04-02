@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spendwise/config/constants.dart';
 import 'package:spendwise/home/models/filter_state.dart'
     show FilterState, TransactionTypeFilter;
 import 'package:spendwise/home/widgets/all_filters_bottom_sheet.dart';
@@ -10,15 +11,6 @@ import 'package:spendwise/providers.dart';
 
 class FilterRow extends ConsumerWidget {
   const FilterRow({super.key});
-
-  static const List<String> _dateFilters = [
-    'All Time',
-    'Today',
-    'This Week',
-    'This Month',
-    'This Year',
-    'Custom Range',
-  ];
 
   static const List<String> _transactionTypes = ['Money In', 'Money Out'];
 
@@ -230,11 +222,11 @@ class FilterRow extends ConsumerWidget {
           FilterDropdown(
             icon: Icons.calendar_today,
             label: _getDateFilterLabel(filterState),
-            items: _dateFilters,
+            items: dateFilters,
             selectedItems: [filterState.dateFilter],
             onChanged: (selected) =>
                 _handleDateFilterChanged(context, ref, selected),
-            highlightWhenSelected: filterState.dateFilter != 'All Time',
+            highlightWhenSelected: filterState.dateFilter != defaultDateFilter,
           ),
           const SizedBox(width: 8),
           // Categories Filter
