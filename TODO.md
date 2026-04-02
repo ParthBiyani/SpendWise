@@ -61,7 +61,7 @@
 
 ## Testing
 
-- [ ] Set up unit tests for `TransactionsRepository`
-- [ ] Set up unit tests for `FilterState` and filter logic in `homepage.dart`
-- [ ] Set up widget tests for `TransactionTile` and `SummaryCard`
-- [ ] Add `mockito` (or `mocktail`) to dev dependencies for mocking the database in tests
+- [x] Set up unit tests for `TransactionsRepository`
+- [x] Set up unit tests for `FilterState` and filter logic in `homepage.dart`
+- [x] Set up widget tests for `TransactionTile` and `SummaryCard`
+- [x] Add `mockito` (or `mocktail`) to dev dependencies for mocking the database in tests

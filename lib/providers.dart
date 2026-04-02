@@ -62,7 +62,7 @@ final filterStateProvider =
 // NOT used for the display list (that comes from the paged notifier).
 // ---------------------------------------------------------------------------
 
-final _allFilteredStreamProvider = StreamProvider<List<TransactionItem>>((ref) {
+final allFilteredStreamProvider = StreamProvider<List<TransactionItem>>((ref) {
   final filterState = ref.watch(filterStateProvider);
   return ref.watch(repositoryProvider).watchFiltered(filterState);
 });
@@ -102,7 +102,7 @@ class TransactionPageNotifier
     // Re-run whenever the filter changes.
     final filterState = ref.watch(filterStateProvider);
     // Also re-run when the underlying DB stream emits (e.g. after add/delete).
-    ref.watch(_allFilteredStreamProvider);
+    ref.watch(allFilteredStreamProvider);
 
     final repo = ref.read(repositoryProvider);
     final first = await repo.fetchPaged(filterState,
@@ -151,7 +151,7 @@ final groupedTransactionsProvider = Provider<List<DateGroup>>((ref) {
 // shown on each visible tile is correct relative to all-time history.
 final runningBalancesProvider = Provider<Map<int, double>>((ref) {
   return computeRunningBalances(
-      ref.watch(_allFilteredStreamProvider).valueOrNull ?? const []);
+      ref.watch(allFilteredStreamProvider).valueOrNull ?? const []);
 });
 
 // ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ typedef TransactionSummary = ({
 
 final summaryProvider = Provider<TransactionSummary>((ref) {
   final items =
-      ref.watch(_allFilteredStreamProvider).valueOrNull ?? const [];
+      ref.watch(allFilteredStreamProvider).valueOrNull ?? const [];
   final totalIncome =
       items.where((i) => i.isIncome).fold(0.0, (s, i) => s + i.amount);
   final totalExpense =

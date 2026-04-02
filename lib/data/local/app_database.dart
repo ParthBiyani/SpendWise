@@ -27,6 +27,9 @@ class Transactions extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// For unit tests only — accepts any [QueryExecutor] (e.g. in-memory SQLite).
+  AppDatabase.forTesting(super.executor);
+
   @override
   int get schemaVersion => 5;
 
