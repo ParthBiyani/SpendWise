@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
+import 'package:spendwise/providers.dart';
 
-class CategorySelector extends StatefulWidget {
+class CategorySelector extends ConsumerStatefulWidget {
   const CategorySelector({
     super.key,
     required this.repository,
@@ -15,39 +17,39 @@ class CategorySelector extends StatefulWidget {
   final ValueChanged<String> onCategorySelected;
 
   @override
-  State<CategorySelector> createState() => _CategorySelectorState();
+  ConsumerState<CategorySelector> createState() => _CategorySelectorState();
 }
 
-class _CategorySelectorState extends State<CategorySelector> {
-  late final Future<List<CategoryOption>> _sortedOptionsFuture;
+class _CategorySelectorState extends ConsumerState<CategorySelector> {
+  Future<Map<String, int>>? _countsFuture;
 
   @override
   void initState() {
     super.initState();
-    _sortedOptionsFuture = _buildSortedOptions();
-  }
-
-  Future<List<CategoryOption>> _buildSortedOptions() async {
-    final counts = await widget.repository.fetchCategoryUsageCounts();
-    final defaultOrder = <String, int>{
-      for (var i = 0; i < categoryOptions.length; i++) categoryOptions[i].label: i,
-    };
-    final options = [...categoryOptions];
-    options.sort((a, b) {
-      final countDiff = (counts[b.label] ?? 0).compareTo(counts[a.label] ?? 0);
-      if (countDiff != 0) return countDiff;
-      return (defaultOrder[a.label] ?? 0).compareTo(defaultOrder[b.label] ?? 0);
-    });
-    return options;
+    _countsFuture = widget.repository.fetchCategoryUsageCounts();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return FutureBuilder<List<CategoryOption>>(
-      future: _sortedOptionsFuture,
+    final liveCats = ref.watch(categoriesProvider).valueOrNull ?? [];
+
+    return FutureBuilder<Map<String, int>>(
+      future: _countsFuture,
       builder: (context, snapshot) {
-        final options = snapshot.data ?? categoryOptions;
+        final counts = snapshot.data ?? {};
+
+        final options = liveCats
+            .map((c) => CategoryOption(c.name, c.icon))
+            .toList()
+          ..sort((a, b) {
+            final countDiff =
+                (counts[b.label] ?? 0).compareTo(counts[a.label] ?? 0);
+            if (countDiff != 0) return countDiff;
+            return liveCats.indexWhere((c) => c.name == a.label)
+                .compareTo(liveCats.indexWhere((c) => c.name == b.label));
+          });
+
         final hasSelection = widget.selectedCategory != null;
         return LayoutBuilder(
           builder: (context, constraints) {

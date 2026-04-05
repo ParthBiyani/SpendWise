@@ -98,6 +98,14 @@ class TransactionsRepository {
     }
   }
 
+  Future<int> deleteAll() async {
+    try {
+      return await _db.deleteAllTransactions();
+    } catch (e) {
+      throw TransactionDeleteException('Failed to delete all transactions', cause: e);
+    }
+  }
+
   TransactionItem _toItem(Transaction row) {
     return TransactionItem(
       id: row.id,

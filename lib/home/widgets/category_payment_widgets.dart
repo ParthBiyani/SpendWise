@@ -1,15 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:spendwise/config/constants.dart';
-
-/// Maps category names to their icons. Derived from [categories] in constants.dart.
-final Map<String, IconData> categoryIcons = {
-  for (final c in categories) c.name: c.icon,
-};
-
-/// Maps payment method names to their icons. Derived from [paymentMethods] in constants.dart.
-final Map<String, IconData> paymentMethodIcons = {
-  for (final p in paymentMethods) p.name: p.icon,
-};
 
 /// Represents a category option with a label and icon.
 class CategoryOption {
@@ -18,11 +7,6 @@ class CategoryOption {
   final String label;
   final IconData icon;
 }
-
-/// All available category options, derived from [categories] in constants.dart.
-final List<CategoryOption> categoryOptions = [
-  for (final c in categories) CategoryOption(c.name, c.icon),
-];
 
 /// A tile widget for displaying a category with an icon
 class CategoryTile extends StatelessWidget {

@@ -291,7 +291,7 @@ void main() {
 
   group('SummaryCard', () {
     testWidgets('renders Net Balance label', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 200,
         totalIncome: 500,
         totalExpense: 300,
@@ -301,7 +301,7 @@ void main() {
     });
 
     testWidgets('renders formatted net balance value', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 1500,
         totalIncome: 2000,
         totalExpense: 500,
@@ -311,7 +311,7 @@ void main() {
     });
 
     testWidgets('renders Net Income label', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 0,
         totalIncome: 1000,
         totalExpense: 1000,
@@ -321,7 +321,7 @@ void main() {
     });
 
     testWidgets('renders formatted income value', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 300,
         totalIncome: 800,
         totalExpense: 500,
@@ -331,7 +331,7 @@ void main() {
     });
 
     testWidgets('renders Net Expenses label', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 0,
         totalIncome: 0,
         totalExpense: 0,
@@ -341,7 +341,7 @@ void main() {
     });
 
     testWidgets('renders formatted expense value', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 300,
         totalIncome: 800,
         totalExpense: 500,
@@ -351,7 +351,7 @@ void main() {
     });
 
     testWidgets('renders negative net balance with minus sign', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: -200,
         totalIncome: 300,
         totalExpense: 500,
@@ -361,7 +361,7 @@ void main() {
     });
 
     testWidgets('renders zero values as ₹0.00', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 0,
         totalIncome: 0,
         totalExpense: 0,
@@ -373,7 +373,7 @@ void main() {
 
     testWidgets('semantics label contains net balance amount', (tester) async {
       final handle = tester.ensureSemantics();
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 200,
         totalIncome: 500,
         totalExpense: 300,
@@ -389,7 +389,7 @@ void main() {
     testWidgets('semantics label contains income and expense amounts',
         (tester) async {
       final handle = tester.ensureSemantics();
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 200,
         totalIncome: 500,
         totalExpense: 300,
@@ -407,7 +407,7 @@ void main() {
     });
 
     testWidgets('income value colour is tertiary (green)', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 200,
         totalIncome: 500,
         totalExpense: 300,
@@ -422,7 +422,7 @@ void main() {
     });
 
     testWidgets('expense value colour is error (red)', (tester) async {
-      await tester.pumpWidget(_wrap(const SummaryCard(
+      await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 200,
         totalIncome: 500,
         totalExpense: 300,

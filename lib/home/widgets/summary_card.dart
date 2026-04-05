@@ -7,11 +7,13 @@ class SummaryCard extends StatelessWidget {
     required this.netBalance,
     required this.totalIncome,
     required this.totalExpense,
+    required this.bookName,
   });
 
   final double netBalance;
   final double totalIncome;
   final double totalExpense;
+  final String bookName;
 
   @override
   Widget build(BuildContext context) {
@@ -25,36 +27,62 @@ class SummaryCard extends StatelessWidget {
           'Net income ${formatCurrency(totalIncome)}. '
           'Net expenses ${formatCurrency(totalExpense)}.',
       excludeSemantics: true,
-      child: Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.25)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Net Balance', style: theme.textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Text(formatCurrency(netBalance), style: netTextStyle),
-            const SizedBox(height: 20),
-            _MetricLine(
-              label: 'Net Income',
-              value: formatCurrency(totalIncome),
-              valueColor: theme.colorScheme.tertiary,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Card(
+            elevation: 0,
+            color: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.25)),
             ),
-            _MetricLine(
-              label: 'Net Expenses',
-              value: formatCurrency(totalExpense),
-              valueColor: theme.colorScheme.error,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Net Balance', style: theme.textTheme.labelLarge),
+                  const SizedBox(height: 6),
+                  Text(formatCurrency(netBalance), style: netTextStyle),
+                  const SizedBox(height: 20),
+                  _MetricLine(
+                    label: 'Net Income',
+                    value: formatCurrency(totalIncome),
+                    valueColor: theme.colorScheme.tertiary,
+                  ),
+                  _MetricLine(
+                    label: 'Net Expenses',
+                    value: formatCurrency(totalExpense),
+                    valueColor: theme.colorScheme.error,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: FractionalTranslation(
+                translation: const Offset(0, -0.25),
+                child: Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    bookName,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-    ));
+    );
   }
 }
 

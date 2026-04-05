@@ -8,6 +8,18 @@ import 'package:spendwise/config/constants.dart';
 
 part 'app_database.g.dart';
 
+// ---------------------------------------------------------------------------
+// Settings table — simple key/value store for app settings
+// ---------------------------------------------------------------------------
+
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @TableIndex(name: 'idx_transactions_date_time', columns: {#occurredAt})
 @TableIndex(name: 'idx_transactions_category', columns: {#category})
 @TableIndex(name: 'idx_transactions_payment_method', columns: {#paymentMethod})
@@ -24,7 +36,7 @@ class Transactions extends Table {
   DateTimeColumn get occurredAt => dateTime().named('date_time')();
 }
 
-@DriftDatabase(tables: [Transactions])
+@DriftDatabase(tables: [Transactions, Settings])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -32,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -103,6 +115,16 @@ FROM "transactions";
               'CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (category);');
           await m.database.customStatement(
               'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions (payment_method);');
+        }
+
+        // v5 → v6: add settings table
+        if (from <= 5 && to > 5) {
+          await m.database.customStatement('''
+CREATE TABLE IF NOT EXISTS "settings" (
+  "key" TEXT NOT NULL PRIMARY KEY,
+  "value" TEXT NOT NULL
+);
+''');
         }
 
         // v4 → v5: make remarks, reference_id, entry_by nullable
@@ -339,6 +361,22 @@ FROM "transactions";
 
   Future<int> deleteTransactionById(int id) {
     return (delete(transactions)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> deleteAllTransactions() {
+    return delete(transactions).go();
+  }
+
+  Future<String?> getSetting(String key) async {
+    final row = await (select(settings)..where((s) => s.key.equals(key)))
+        .getSingleOrNull();
+    return row?.value;
+  }
+
+  Future<void> setSetting(String key, String value) {
+    return into(settings).insertOnConflictUpdate(
+      SettingsCompanion.insert(key: key, value: value),
+    );
   }
 }
 

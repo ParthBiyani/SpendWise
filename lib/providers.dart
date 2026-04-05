@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/config/constants.dart';
 import 'package:spendwise/data/local/app_database.dart';
@@ -9,22 +12,33 @@ import 'package:spendwise/home/utils/transaction_utils.dart'
     show groupTransactions, computeRunningBalances;
 
 // ---------------------------------------------------------------------------
-// App-wide convenience accessors derived from constants.dart
+// App-wide convenience providers derived from the mutable notifiers
 // ---------------------------------------------------------------------------
 
 /// Flat list of category names, in display order.
-final List<String> availableCategories =
-    categories.map((c) => c.name).toList();
+final availableCategoriesProvider = Provider<List<String>>((ref) {
+  return (ref.watch(categoriesProvider).valueOrNull ?? []).map((c) => c.name).toList();
+});
 
 /// Flat list of payment method names, in display order.
-final List<String> availablePaymentMethods =
-    paymentMethods.map((p) => p.name).toList();
+final availablePaymentMethodsProvider = Provider<List<String>>((ref) {
+  return (ref.watch(paymentMethodsProvider).valueOrNull ?? []).map((p) => p.name).toList();
+});
 
 /// Maps every category name to its class type.
-/// Derived from [categories] — constants.dart is the single source of truth.
-final Map<String, String> categoryClassification = {
-  for (final c in categories) c.name: c.classType,
-};
+final categoryClassificationProvider = Provider<Map<String, String>>((ref) {
+  return {for (final c in ref.watch(categoriesProvider).valueOrNull ?? []) c.name: c.classType};
+});
+
+/// Maps category name → icon.
+final categoryIconsProvider = Provider<Map<String, IconData>>((ref) {
+  return {for (final c in ref.watch(categoriesProvider).valueOrNull ?? []) c.name: c.icon};
+});
+
+/// Maps payment method name → icon.
+final paymentMethodIconsProvider = Provider<Map<String, IconData>>((ref) {
+  return {for (final p in ref.watch(paymentMethodsProvider).valueOrNull ?? []) p.name: p.icon};
+});
 
 const int kPageSize = 30;
 
@@ -153,6 +167,147 @@ final runningBalancesProvider = Provider<Map<int, double>>((ref) {
   return computeRunningBalances(
       ref.watch(allFilteredStreamProvider).valueOrNull ?? const []);
 });
+
+// ---------------------------------------------------------------------------
+// Settings providers — persisted to the Settings table in SQLite
+// ---------------------------------------------------------------------------
+
+// IconData serialisation helpers (codePoint + fontFamily + fontPackage)
+Map<String, dynamic> _iconToJson(IconData icon) => {
+      'cp': icon.codePoint,
+      'ff': icon.fontFamily,
+      'fp': icon.fontPackage,
+    };
+
+IconData _iconFromJson(Map<String, dynamic> j) => IconData(
+      j['cp'] as int,
+      fontFamily: j['ff'] as String?,
+      fontPackage: j['fp'] as String?,
+    );
+
+class BookNameNotifier extends AsyncNotifier<String> {
+  static const _key = 'book_name';
+
+  @override
+  Future<String> build() async {
+    final db = ref.read(appDatabaseProvider);
+    return await db.getSetting(_key) ?? 'Wallet Transactions';
+  }
+
+  Future<void> set(String name) async {
+    state = AsyncData(name);
+    await ref.read(appDatabaseProvider).setSetting(_key, name);
+  }
+}
+
+final bookNameProvider =
+    AsyncNotifierProvider<BookNameNotifier, String>(BookNameNotifier.new);
+
+class CategoriesNotifier extends AsyncNotifier<List<CategoryInfo>> {
+  static const _key = 'categories';
+
+  @override
+  Future<List<CategoryInfo>> build() async {
+    final db = ref.read(appDatabaseProvider);
+    final raw = await db.getSetting(_key);
+    if (raw == null) return List<CategoryInfo>.from(categories);
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.map((e) {
+      final m = e as Map<String, dynamic>;
+      return CategoryInfo(
+        name: m['name'] as String,
+        icon: _iconFromJson(m['icon'] as Map<String, dynamic>),
+        classType: m['classType'] as String,
+      );
+    }).toList();
+  }
+
+  Future<void> _persist(List<CategoryInfo> list) async {
+    final encoded = jsonEncode(list.map((c) => {
+          'name': c.name,
+          'icon': _iconToJson(c.icon),
+          'classType': c.classType,
+        }).toList());
+    await ref.read(appDatabaseProvider).setSetting(_key, encoded);
+  }
+
+  Future<void> add(CategoryInfo item) async {
+    final current = state.valueOrNull ?? [];
+    final updated = [...current, item];
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+
+  Future<void> edit(int index, CategoryInfo item) async {
+    final updated = List<CategoryInfo>.from(state.valueOrNull ?? []);
+    updated[index] = item;
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+
+  Future<void> remove(int index) async {
+    final updated = List<CategoryInfo>.from(state.valueOrNull ?? []);
+    updated.removeAt(index);
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+}
+
+final categoriesProvider =
+    AsyncNotifierProvider<CategoriesNotifier, List<CategoryInfo>>(
+        CategoriesNotifier.new);
+
+class PaymentMethodsNotifier extends AsyncNotifier<List<PaymentMethodInfo>> {
+  static const _key = 'payment_methods';
+
+  @override
+  Future<List<PaymentMethodInfo>> build() async {
+    final db = ref.read(appDatabaseProvider);
+    final raw = await db.getSetting(_key);
+    if (raw == null) return List<PaymentMethodInfo>.from(paymentMethods);
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.map((e) {
+      final m = e as Map<String, dynamic>;
+      return PaymentMethodInfo(
+        name: m['name'] as String,
+        icon: _iconFromJson(m['icon'] as Map<String, dynamic>),
+      );
+    }).toList();
+  }
+
+  Future<void> _persist(List<PaymentMethodInfo> list) async {
+    final encoded = jsonEncode(list.map((p) => {
+          'name': p.name,
+          'icon': _iconToJson(p.icon),
+        }).toList());
+    await ref.read(appDatabaseProvider).setSetting(_key, encoded);
+  }
+
+  Future<void> add(PaymentMethodInfo item) async {
+    final current = state.valueOrNull ?? [];
+    final updated = [...current, item];
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+
+  Future<void> edit(int index, PaymentMethodInfo item) async {
+    final updated = List<PaymentMethodInfo>.from(state.valueOrNull ?? []);
+    updated[index] = item;
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+
+  Future<void> remove(int index) async {
+    final updated = List<PaymentMethodInfo>.from(state.valueOrNull ?? []);
+    updated.removeAt(index);
+    state = AsyncData(updated);
+    await _persist(updated);
+  }
+}
+
+final paymentMethodsProvider =
+    AsyncNotifierProvider<PaymentMethodsNotifier, List<PaymentMethodInfo>>(
+        PaymentMethodsNotifier.new);
 
 // ---------------------------------------------------------------------------
 // Summary provider (full filtered set)

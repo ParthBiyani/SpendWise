@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 Future<bool> showDeleteConfirmationDialog(
   BuildContext context, {
   required int count,
+  bool deleteAll = false,
 }) async {
   final theme = Theme.of(context);
   final confirmed = await showDialog<bool>(
@@ -14,13 +15,14 @@ Future<bool> showDeleteConfirmationDialog(
         children: [
           const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
+              width: double.infinity,
               decoration: BoxDecoration(
                 color: theme.colorScheme.error.withValues(alpha: 0.08),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(14),
+                  topRight: Radius.circular(14),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
@@ -30,8 +32,9 @@ Future<bool> showDeleteConfirmationDialog(
                       color: theme.colorScheme.error, size: 40),
                   const SizedBox(height: 12),
                   Text(
-                    count == 1 ? 'Delete Transaction' : 'Delete Transactions',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    deleteAll ? 'Delete Transactions' : count == 1 ? 'Delete Transaction' : 'Delete Transactions',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: theme.colorScheme.error,
                     ),
@@ -43,9 +46,11 @@ Future<bool> showDeleteConfirmationDialog(
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 1),
             child: Text(
-              count == 1
-                  ? 'Are you sure you want to delete this transaction?'
-                  : 'Are you sure you want to delete $count transactions?',
+              deleteAll
+                  ? 'Are you sure you want to delete all the transactions?'
+                  : count == 1
+                      ? 'Are you sure you want to delete this transaction?'
+                      : 'Are you sure you want to delete these $count transactions?',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
             ),
@@ -87,6 +92,9 @@ Future<bool> showDeleteConfirmationDialog(
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: theme.colorScheme.onSurface,
+                        backgroundColor: Colors.white,
+                        elevation: 2,
+                        shadowColor: Colors.black.withValues(alpha: 0.15),
                         side: BorderSide(
                             color: Colors.grey.withValues(alpha: 0.5)),
                         shape: RoundedRectangleBorder(
@@ -107,8 +115,8 @@ Future<bool> showDeleteConfirmationDialog(
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.error.withValues(alpha: 0.3),
-                            blurRadius: 8,
+                            color: theme.colorScheme.error.withValues(alpha: 0.18),
+                            blurRadius: 5,
                             offset: const Offset(0, 2),
                           ),
                         ],

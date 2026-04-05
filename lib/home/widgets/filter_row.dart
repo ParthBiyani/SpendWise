@@ -232,7 +232,7 @@ class FilterRow extends ConsumerWidget {
           // Categories Filter
           FilterDropdown(
             label: 'Categories',
-            items: availableCategories,
+            items: ref.watch(availableCategoriesProvider),
             selectedItems: filterState.categories,
             onChanged: (selected) =>
                 notifier.update(filterState.copyWith(categories: selected)),
@@ -247,7 +247,7 @@ class FilterRow extends ConsumerWidget {
           // Payment Method Filter
           FilterDropdown(
             label: 'Payment',
-            items: availablePaymentMethods,
+            items: ref.watch(availablePaymentMethodsProvider),
             selectedItems: filterState.paymentMethods,
             onChanged: (selected) =>
                 notifier.update(filterState.copyWith(paymentMethods: selected)),

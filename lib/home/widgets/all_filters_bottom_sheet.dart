@@ -318,7 +318,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                             height: tileSize + 28,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              itemCount: availableCategories.length + 1,
+                              itemCount: ref.watch(availableCategoriesProvider).length + 1,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(width: spacing),
                               itemBuilder: (context, index) {
@@ -385,12 +385,12 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                                   );
                                 }
                                 final category =
-                                    availableCategories[index - 1];
+                                    ref.watch(availableCategoriesProvider)[index - 1];
                                 final isSelected = _currentFilters.categories
                                     .contains(category);
                                 return CategoryTile(
                                   label: category,
-                                  icon: categoryIcons[category] ??
+                                  icon: ref.watch(categoryIconsProvider)[category] ??
                                       Icons.category,
                                   size: tileSize,
                                   selected: isSelected,
@@ -421,7 +421,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                         height: 48,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          itemCount: availablePaymentMethods.length + 1,
+                          itemCount: ref.watch(availablePaymentMethodsProvider).length + 1,
                           separatorBuilder: (_, __) =>
                               const SizedBox(width: 15),
                           itemBuilder: (context, index) {
@@ -463,12 +463,12 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                               );
                             }
                             final method =
-                                availablePaymentMethods[index - 1];
+                                ref.watch(availablePaymentMethodsProvider)[index - 1];
                             final isSelected = _currentFilters.paymentMethods
                                 .contains(method);
                             return FilledPill(
                               label: method,
-                              icon: paymentMethodIcons[method],
+                              icon: ref.watch(paymentMethodIconsProvider)[method],
                               selected: isSelected,
                               hasSelection: false,
                               onTap: () => setState(() {

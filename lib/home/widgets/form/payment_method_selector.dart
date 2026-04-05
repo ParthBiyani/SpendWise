@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
+import 'package:spendwise/providers.dart';
 
-class PaymentMethodSelector extends StatelessWidget {
+class PaymentMethodSelector extends ConsumerWidget {
   const PaymentMethodSelector({
     super.key,
     required this.paymentMethods,
@@ -14,7 +16,8 @@ class PaymentMethodSelector extends StatelessWidget {
   final ValueChanged<String> onPaymentMethodSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final iconMap = ref.watch(paymentMethodIconsProvider);
     return SizedBox(
       height: 48,
       child: ListView.separated(
@@ -25,7 +28,7 @@ class PaymentMethodSelector extends StatelessWidget {
           final label = paymentMethods[index];
           return FilledPill(
             label: label,
-            icon: paymentMethodIcons[label],
+            icon: iconMap[label],
             selected: selectedPaymentMethod == label,
             hasSelection: selectedPaymentMethod != null,
             onTap: () => onPaymentMethodSelected(label),

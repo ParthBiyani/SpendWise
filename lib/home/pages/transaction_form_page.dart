@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/widgets/form/amount_field.dart';
@@ -7,9 +8,10 @@ import 'package:spendwise/home/widgets/form/payment_method_selector.dart';
 import 'package:spendwise/home/widgets/form/transaction_datetime_row.dart';
 import 'package:spendwise/config/constants.dart' show cashPaymentMethod;
 import 'package:spendwise/home/utils/toast_utils.dart';
-import 'package:spendwise/providers.dart' show categoryClassification, availablePaymentMethods;
+import 'package:spendwise/providers.dart'
+    show availablePaymentMethodsProvider, categoryClassificationProvider;
 
-class TransactionFormPage extends StatefulWidget {
+class TransactionFormPage extends ConsumerStatefulWidget {
   const TransactionFormPage({
     super.key,
     required this.repository,
@@ -24,10 +26,10 @@ class TransactionFormPage extends StatefulWidget {
   final bool? initialIsIncome;
 
   @override
-  State<TransactionFormPage> createState() => _TransactionFormPageState();
+  ConsumerState<TransactionFormPage> createState() => _TransactionFormPageState();
 }
 
-class _TransactionFormPageState extends State<TransactionFormPage> {
+class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _remarksController = TextEditingController();
   final _amountController = TextEditingController();
@@ -140,7 +142,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     }
 
     try {
-      final classType = categoryClassification[_selectedCategory!] ?? 'Desire';
+      final classType = ref.read(categoryClassificationProvider)[_selectedCategory!] ?? 'Desire';
       final item = TransactionItem(
         id: widget.initialItem?.id,
         remarks: _remarksController.text,
@@ -220,7 +222,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               const _SectionHeader(title: 'Payment method', isRequired: true),
               const SizedBox(height: 10),
               PaymentMethodSelector(
-                paymentMethods: availablePaymentMethods,
+                paymentMethods: ref.watch(availablePaymentMethodsProvider),
                 selectedPaymentMethod: _selectedPaymentMethod,
                 onPaymentMethodSelected: (method) {
                   setState(() {

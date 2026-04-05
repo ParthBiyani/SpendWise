@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 // ---------------------------------------------------------------------------
 
 const Color appPrimaryColor = Color(0xFF1E394E);
-const Color appIncomeColor = Color(0xFF1A7A44);
-const Color appExpenseColor = Color(0xFFC0392B);
+const Color appIncomeColor = Color(0xFF27AE60);
+const Color appExpenseColor = Color(0xFFE74C3C);
 
 /// Describes a single transaction category.
 class CategoryInfo {

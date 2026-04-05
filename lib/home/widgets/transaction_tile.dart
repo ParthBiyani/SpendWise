@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
 import 'package:spendwise/home/utils/formatters.dart';
-import 'package:spendwise/home/widgets/category_payment_widgets.dart' show categoryIcons;
+import 'package:spendwise/providers.dart' show categoryIconsProvider;
 
-class TransactionTile extends StatelessWidget {
+class TransactionTile extends ConsumerWidget {
   const TransactionTile({
     super.key,
     required this.item,
@@ -22,11 +23,11 @@ class TransactionTile extends StatelessWidget {
   final bool isSelectionMode;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final amountColor = item.isIncome ? theme.colorScheme.tertiary : theme.colorScheme.error;
     final formattedBalanceAfter = formatCurrency(balanceAfter, prefix: '');
-    final categoryIcon = categoryIcons[item.category] ?? Icons.category;
+    final categoryIcon = ref.watch(categoryIconsProvider)[item.category] ?? Icons.category;
 
     final amountLabel =
         '${item.isIncome ? 'Income' : 'Expense'} ${formatCurrency(item.amount, prefix: '')}';
