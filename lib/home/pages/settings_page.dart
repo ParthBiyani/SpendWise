@@ -282,60 +282,23 @@ class _BookNameSectionState extends ConsumerState<_BookNameSection> {
 // Categories
 // ---------------------------------------------------------------------------
 
-class _CategoriesSection extends ConsumerWidget {
+class _CategoriesSection extends ConsumerStatefulWidget {
   const _CategoriesSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
+  ConsumerState<_CategoriesSection> createState() => _CategoriesSectionState();
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: 'Edit Categories',
-          actionLabel: '+ Add',
-          onAction: () => _showCategoryDialog(context, ref, null, null),
-        ),
-        Transform.translate(
-          offset: const Offset(0, -8),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              'Auto-sorted by last use in transactions',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
-              ),
-            ),
-          ),
-        ),
-        LayoutBuilder(builder: (context, constraints) {
-          const spacing = 12.0;
-          const cols = 5;
-          final tileWidth =
-              (constraints.maxWidth - spacing * (cols - 1)) / cols;
-          final tileSize = tileWidth.clamp(52.0, 72.0);
+class _CategoriesSectionState extends ConsumerState<_CategoriesSection> {
+  late Future<Map<String, int>> _countsFuture;
 
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            children: cats.asMap().entries.map((entry) {
-              final i = entry.key;
-              final cat = entry.value;
-              return _EditableCategoryTile(
-                cat: cat,
-                tileSize: tileSize,
-                onTap: () => _showCategoryDialog(context, ref, i, cat),
-              );
-            }).toList(),
-          );
-        }),
-      ],
-    );
+  @override
+  void initState() {
+    super.initState();
+    _countsFuture = ref.read(repositoryProvider).fetchCategoryUsageCounts();
   }
 
-  void _showCategoryDialog(
-      BuildContext context, WidgetRef ref, int? index, CategoryInfo? existing) {
+  void _showCategoryDialog(int? index, CategoryInfo? existing) {
     showDialog(
       context: context,
       builder: (_) => _CategoryDialog(
@@ -351,6 +314,67 @@ class _CategoriesSection extends ConsumerWidget {
             ? null
             : () => ref.read(categoriesProvider.notifier).remove(index),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, ) {
+    final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Edit Categories',
+          actionLabel: '+ Add',
+          onAction: () => _showCategoryDialog(null, null),
+        ),
+        Transform.translate(
+          offset: const Offset(0, -8),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              'Auto-sorted by last use in transactions',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
+        ),
+        FutureBuilder<Map<String, int>>(
+          future: _countsFuture,
+          builder: (context, snapshot) {
+            final counts = snapshot.data ?? {};
+            final sorted = List<CategoryInfo>.from(cats)
+              ..sort((a, b) {
+                final countDiff = (counts[b.name] ?? 0).compareTo(counts[a.name] ?? 0);
+                if (countDiff != 0) return countDiff;
+                return cats.indexWhere((c) => c.name == a.name)
+                    .compareTo(cats.indexWhere((c) => c.name == b.name));
+              });
+
+            return LayoutBuilder(builder: (context, constraints) {
+              const spacing = 12.0;
+              const cols = 5;
+              final tileWidth = (constraints.maxWidth - spacing * (cols - 1)) / cols;
+              final tileSize = tileWidth.clamp(52.0, 72.0);
+
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: sorted.map((cat) {
+                  final index = cats.indexWhere((c) => c.name == cat.name);
+                  return _EditableCategoryTile(
+                    cat: cat,
+                    tileSize: tileSize,
+                    onTap: () => _showCategoryDialog(index, cat),
+                  );
+                }).toList(),
+              );
+            });
+          },
+        ),
+      ],
     );
   }
 }

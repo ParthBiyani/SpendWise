@@ -24,8 +24,8 @@ class SummaryCard extends StatelessWidget {
     return Semantics(
       label: 'Summary card. '
           'Net balance ${formatCurrency(netBalance)}. '
-          'Net income ${formatCurrency(totalIncome)}. '
-          'Net expenses ${formatCurrency(totalExpense)}.',
+          'Total money in ${formatCurrency(totalIncome)}. '
+          'Total money out ${formatCurrency(totalExpense)}.',
       excludeSemantics: true,
       child: Stack(
         clipBehavior: Clip.none,
@@ -47,12 +47,12 @@ class SummaryCard extends StatelessWidget {
                   Text(formatCurrency(netBalance), style: netTextStyle),
                   const SizedBox(height: 20),
                   _MetricLine(
-                    label: 'Net Income',
+                    label: 'Total Money In',
                     value: formatCurrency(totalIncome),
                     valueColor: theme.colorScheme.tertiary,
                   ),
                   _MetricLine(
-                    label: 'Net Expenses',
+                    label: 'Total Money Out',
                     value: formatCurrency(totalExpense),
                     valueColor: theme.colorScheme.error,
                   ),

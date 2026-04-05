@@ -310,14 +310,14 @@ void main() {
       expect(find.text('₹1,500.00'), findsOneWidget);
     });
 
-    testWidgets('renders Net Income label', (tester) async {
+    testWidgets('renders Total Money In label', (tester) async {
       await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 0,
         totalIncome: 1000,
         totalExpense: 1000,
       )));
 
-      expect(find.text('Net Income'), findsOneWidget);
+      expect(find.text('Total Money In'), findsOneWidget);
     });
 
     testWidgets('renders formatted income value', (tester) async {
@@ -330,14 +330,14 @@ void main() {
       expect(find.text('₹800.00'), findsOneWidget);
     });
 
-    testWidgets('renders Net Expenses label', (tester) async {
+    testWidgets('renders Total Money Out label', (tester) async {
       await tester.pumpWidget(_wrap(const SummaryCard(bookName: 'Test',
         netBalance: 0,
         totalIncome: 0,
         totalExpense: 0,
       )));
 
-      expect(find.text('Net Expenses'), findsOneWidget);
+      expect(find.text('Total Money Out'), findsOneWidget);
     });
 
     testWidgets('renders formatted expense value', (tester) async {
@@ -396,11 +396,11 @@ void main() {
       )));
 
       expect(
-        find.bySemanticsLabel(RegExp('Net income')),
+        find.bySemanticsLabel(RegExp('Total money in')),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel(RegExp('Net expenses')),
+        find.bySemanticsLabel(RegExp('Total money out')),
         findsOneWidget,
       );
       handle.dispose();

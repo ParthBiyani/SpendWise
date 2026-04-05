@@ -368,7 +368,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                 ],
         ),
         body: SafeArea(
-          child: AnimatedSwitcher(
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final dx = details.primaryVelocity ?? 0;
+              if (!_showAnalytics && dx < -300) {
+                setState(() => _showAnalytics = true);
+              } else if (_showAnalytics && dx > 300) {
+                setState(() => _showAnalytics = false);
+              }
+            },
+            child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             child: _showAnalytics
                 ? const Center(
@@ -461,6 +470,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ],
                   ],
                 ),
+          ),
           ),
         ),
         bottomNavigationBar: _showAnalytics
