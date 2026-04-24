@@ -147,7 +147,7 @@ void main() {
       final container = _container(mock);
       await container.read(allFilteredStreamProvider.future);
 
-      final newFilter = const FilterState(dateFilter: 'This Month');
+      const newFilter = FilterState(dateFilter: 'This Month');
       container.read(filterStateProvider.notifier).update(newFilter);
       await container.read(allFilteredStreamProvider.future);
 

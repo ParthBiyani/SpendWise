@@ -66,7 +66,7 @@ class _FilterDropdownState extends State<FilterDropdown> {
     // Scroll the parent ListView to make the button fully visible
     try {
       final scrollable = Scrollable.of(context);
-      if (scrollable != null) {
+      {
         // Calculate the button's position relative to the viewport
         final renderViewport = scrollable.context.findRenderObject() as RenderBox?;
         if (renderViewport != null) {

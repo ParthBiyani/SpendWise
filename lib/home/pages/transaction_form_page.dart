@@ -30,7 +30,6 @@ class TransactionFormPage extends ConsumerStatefulWidget {
 }
 
 class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
-  final _formKey = GlobalKey<FormState>();
   final _remarksController = TextEditingController();
   final _amountController = TextEditingController();
   final _referenceIdController = TextEditingController();
@@ -128,9 +127,12 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
   }
 
   Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    final amount = double.parse(_amountController.text.trim());
+    final amountText = _amountController.text.trim();
+    final amount = double.tryParse(amountText);
+    if (amountText.isEmpty || amount == null || amount <= 0) {
+      showAppToast(context, 'Enter a valid amount');
+      return;
+    }
 
     if (_selectedCategory == null) {
       showAppToast(context, 'Select a category');
@@ -184,7 +186,6 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
       ),
       body: SafeArea(
         child: Form(
-          key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
@@ -201,13 +202,6 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage> {
               AmountField(
                 isIncome: _isIncome,
                 controller: _amountController,
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) return 'Enter amount';
-                  final parsed = double.tryParse(text);
-                  if (parsed == null || parsed <= 0) return 'Enter a valid amount';
-                  return null;
-                },
               ),
               const SizedBox(height: 18),
               const _SectionHeader(title: 'Category', isRequired: true),
@@ -420,14 +414,10 @@ class _SegmentedLabel extends StatelessWidget {
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
-    this.actionLabel,
-    this.onActionTap,
     this.isRequired = false,
   });
 
   final String title;
-  final String? actionLabel;
-  final VoidCallback? onActionTap;
   final bool isRequired;
 
   @override
@@ -435,38 +425,21 @@ class _SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              Text(
-                title.toUpperCase(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  letterSpacing: 1.1,
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                ),
-              ),
-              if (isRequired)
-                Text(
-                  ' *',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.error,
-                  ),
-                ),
-            ],
+        Text(
+          title.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            letterSpacing: 1.1,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.primary.withValues(alpha: 0.8),
           ),
         ),
-        if (actionLabel != null)
-          GestureDetector(
-            onTap: onActionTap,
-            child: Text(
-              actionLabel!,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
+        if (isRequired)
+          Text(
+            ' *',
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.error,
             ),
           ),
       ],
@@ -474,64 +447,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.12)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: theme.colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 InputDecoration _inputDecoration(ThemeData theme, {required String label}) {
   return InputDecoration(

@@ -45,9 +45,11 @@ void main() {
   late AppDatabase db;
   late TransactionsRepository repo;
 
-  setUp(() {
+  setUp(() async {
     db = _openInMemory();
-    repo = TransactionsRepository(db);
+    // Create the required book row (id=1) before any transaction tests.
+    await db.createBook('Test Book', 'test-book-uuid-0001', iconCodePoint: 0xf02b4);
+    repo = TransactionsRepository(db, bookId: 1);
   });
 
   tearDown(() async => db.close());
@@ -61,10 +63,10 @@ void main() {
       expect(id, isPositive);
     });
 
-    test('inserted item is retrievable via watchAll', () async {
+    test('inserted item is retrievable via watchFiltered', () async {
       await repo.add(_item(category: 'Dining', amount: 250.0));
 
-      final items = await repo.watchAll().first;
+      final items = await repo.watchFiltered(const FilterState()).first;
       expect(items, hasLength(1));
       expect(items.first.category, 'Dining');
       expect(items.first.amount, 250.0);
@@ -72,7 +74,7 @@ void main() {
 
     test('nullable fields stored as null when omitted', () async {
       final id = await repo.add(_item());
-      final items = await repo.watchAll().first;
+      final items = await repo.watchFiltered(const FilterState()).first;
       final saved = items.firstWhere((i) => i.id == id);
 
       expect(saved.remarks, isNull);
@@ -86,7 +88,7 @@ void main() {
         referenceId: 'TXN123',
         entryBy: 'Alice',
       ));
-      final items = await repo.watchAll().first;
+      final items = await repo.watchFiltered(const FilterState()).first;
       final saved = items.firstWhere((i) => i.id == id);
 
       expect(saved.remarks, 'lunch');
@@ -104,7 +106,7 @@ void main() {
       final success = await repo.update(_item(id: id, amount: 999.0, category: 'Travel'));
 
       expect(success, isTrue);
-      final items = await repo.watchAll().first;
+      final items = await repo.watchFiltered(const FilterState()).first;
       expect(items.first.amount, 999.0);
       expect(items.first.category, 'Travel');
     });
@@ -123,7 +125,7 @@ void main() {
       final affected = await repo.delete(id);
 
       expect(affected, 1);
-      expect(await repo.watchAll().first, isEmpty);
+      expect(await repo.watchFiltered(const FilterState()).first, isEmpty);
     });
 
     test('returns 0 when id does not exist', () async {
@@ -137,22 +139,22 @@ void main() {
 
       await repo.delete(id1);
 
-      final remaining = await repo.watchAll().first;
+      final remaining = await repo.watchFiltered(const FilterState()).first;
       expect(remaining, hasLength(1));
       expect(remaining.first.id, id2);
     });
   });
 
   // -------------------------------------------------------------------------
-  // watchAll
+  // watchFiltered
   // -------------------------------------------------------------------------
-  group('watchAll', () {
+  group('watchFiltered', () {
     test('emits empty list when no transactions exist', () async {
-      expect(await repo.watchAll().first, isEmpty);
+      expect(await repo.watchFiltered(const FilterState()).first, isEmpty);
     });
 
     test('emits updated list after insert', () async {
-      final stream = repo.watchAll();
+      final stream = repo.watchFiltered(const FilterState());
       expect(await stream.first, isEmpty);
 
       await repo.add(_item(category: 'Bills'));
@@ -165,28 +167,18 @@ void main() {
       await repo.add(_item(dateTime: DateTime(2024, 6, 1)));
       await repo.add(_item(dateTime: DateTime(2024, 3, 1)));
 
-      final dates = (await repo.watchAll().first).map((i) => i.dateTime).toList();
+      final dates = (await repo.watchFiltered(const FilterState()).first)
+          .map((i) => i.dateTime)
+          .toList();
       expect(dates, [DateTime(2024, 6, 1), DateTime(2024, 3, 1), DateTime(2024, 1, 1)]);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // watchFiltered
-  // -------------------------------------------------------------------------
-  group('watchFiltered', () {
-    test('all-time filter returns all transactions', () async {
-      await repo.add(_item(category: 'Dining'));
-      await repo.add(_item(category: 'Travel'));
-
-      expect(await repo.watchFiltered(const FilterState()).first, hasLength(2));
     });
 
     test('income filter returns only income transactions', () async {
       await repo.add(_item(isIncome: true, category: 'Income'));
       await repo.add(_item(isIncome: false, category: 'Dining'));
 
-      final filter = const FilterState()
-          .copyWith(transactionType: TransactionTypeFilter.income);
+      final filter =
+          const FilterState().copyWith(transactionType: TransactionTypeFilter.income);
       final items = await repo.watchFiltered(filter).first;
 
       expect(items, hasLength(1));
@@ -198,8 +190,8 @@ void main() {
       await repo.add(_item(isIncome: false, category: 'Dining'));
       await repo.add(_item(isIncome: false, category: 'Travel'));
 
-      final filter = const FilterState()
-          .copyWith(transactionType: TransactionTypeFilter.expense);
+      final filter =
+          const FilterState().copyWith(transactionType: TransactionTypeFilter.expense);
       final items = await repo.watchFiltered(filter).first;
 
       expect(items, hasLength(2));
@@ -211,8 +203,7 @@ void main() {
       await repo.add(_item(category: 'Travel'));
       await repo.add(_item(category: 'Groceries'));
 
-      final filter = const FilterState()
-          .copyWith(categories: ['Dining', 'Travel']);
+      final filter = const FilterState().copyWith(categories: ['Dining', 'Travel']);
       final items = await repo.watchFiltered(filter).first;
 
       expect(items, hasLength(2));
@@ -224,8 +215,7 @@ void main() {
       await repo.add(_item(paymentMethod: 'UPI'));
       await repo.add(_item(paymentMethod: 'Card'));
 
-      final filter = const FilterState()
-          .copyWith(paymentMethods: ['UPI']);
+      final filter = const FilterState().copyWith(paymentMethods: ['UPI']);
       final items = await repo.watchFiltered(filter).first;
 
       expect(items, hasLength(1));

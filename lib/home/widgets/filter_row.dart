@@ -232,7 +232,8 @@ class FilterRow extends ConsumerWidget {
           // Categories Filter
           FilterDropdown(
             label: 'Categories',
-            items: ref.watch(availableCategoriesProvider),
+            items: ref.watch(sortedCategoriesProvider).valueOrNull
+                ?? ref.watch(availableCategoriesProvider),
             selectedItems: filterState.categories,
             onChanged: (selected) =>
                 notifier.update(filterState.copyWith(categories: selected)),
@@ -336,7 +337,7 @@ class FilterRow extends ConsumerWidget {
   static String _getDateFilterLabel(FilterState filterState) {
     if (filterState.dateFilter != 'Custom Range') return filterState.dateFilter;
     if (filterState.customStartDate == null ||
-        filterState.customEndDate == null) return 'Custom Range';
+        filterState.customEndDate == null) { return 'Custom Range'; }
     return '${formatDate(filterState.customStartDate!)} - ${formatDate(filterState.customEndDate!)}';
   }
 }

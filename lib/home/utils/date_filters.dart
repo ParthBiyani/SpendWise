@@ -8,16 +8,6 @@ bool isSameWeek(DateTime date, DateTime reference) {
   return !date.isBefore(startOfDay(refStart)) && !date.isAfter(endOfDay(refEnd));
 }
 
-int compareTimeOfDay(DateTime a, DateTime b) {
-  if (a.hour != b.hour) {
-    return a.hour.compareTo(b.hour);
-  }
-  if (a.minute != b.minute) {
-    return a.minute.compareTo(b.minute);
-  }
-  return a.second.compareTo(b.second);
-}
-
 DateTime startOfDay(DateTime date) {
   return DateTime(date.year, date.month, date.day);
 }

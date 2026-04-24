@@ -1,20 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spendwise/books/utils/book_icon_picker.dart';
 import 'package:spendwise/config/constants.dart';
+import 'package:spendwise/home/utils/toast_utils.dart';
 import 'package:spendwise/home/widgets/category_payment_widgets.dart';
 import 'package:spendwise/providers.dart';
 
-class SettingsPage extends ConsumerWidget {
-  const SettingsPage({super.key});
+class SettingsPage extends ConsumerStatefulWidget {
+  const SettingsPage({super.key, required this.bookId});
+
+  final int bookId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  Future<void> _confirmDeleteBook() async {
+    final bookName =
+        ref.read(bookNameProvider).valueOrNull ?? 'this book';
+    final confirmed = await _showDeleteBookDialog(context, bookName);
+    if (!confirmed || !mounted) return;
+    await ref.read(booksRepositoryProvider).delete(widget.bookId);
+    ref.read(activeBookIdProvider.notifier).state = null;
+    if (!mounted) return;
+    // Pop settings + homepage back to books list.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
         title: const Text('Settings'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete book',
+            onPressed: _confirmDeleteBook,
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
@@ -28,6 +56,161 @@ class SettingsPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<bool> _showDeleteBookDialog(
+    BuildContext context, String bookName) async {
+  final theme = Theme.of(context);
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.error.withValues(alpha: 0.08),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(14),
+                  topRight: Radius.circular(14),
+                ),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+              child: Column(
+                children: [
+                  Icon(Icons.warning_rounded,
+                      color: theme.colorScheme.error, size: 40),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Delete Book',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 1),
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                children: [
+                  const TextSpan(text: 'Are you sure you want to delete '),
+                  TextSpan(
+                    text: '"$bookName"',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const TextSpan(
+                      text:
+                          '? All transactions, categories and payment methods in this book will be permanently removed.'),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 1, 20, 24),
+            child: Text(
+              'This action cannot be undone.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                height: 1.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Center(
+            child: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.55,
+              child: Divider(
+                height: 1,
+                color: Colors.grey.withValues(alpha: 0.2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      icon: const Icon(Icons.close, size: 20),
+                      label: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onSurface,
+                        backgroundColor: Colors.white,
+                        elevation: 2,
+                        shadowColor: Colors.black.withValues(alpha: 0.15),
+                        side: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.5)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.error
+                                .withValues(alpha: 0.18),
+                            blurRadius: 5,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        icon: const Icon(Icons.delete,
+                            color: Colors.white, size: 20),
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+  return confirmed ?? false;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,7 +389,8 @@ class _BookNameSectionState extends ConsumerState<_BookNameSection> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: ref.read(bookNameProvider).valueOrNull ?? 'Wallet Transactions');
+    _controller = TextEditingController(
+        text: ref.read(bookNameProvider).valueOrNull ?? '');
   }
 
   @override
@@ -220,17 +404,15 @@ class _BookNameSectionState extends ConsumerState<_BookNameSection> {
     if (name.isEmpty) return;
     ref.read(bookNameProvider.notifier).set(name);
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Book name updated'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    showAppToast(context, 'Book updated');
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currentIcon =
+        ref.watch(bookIconProvider).valueOrNull ?? Icons.menu_book_outlined;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -239,8 +421,31 @@ class _BookNameSectionState extends ConsumerState<_BookNameSection> {
           height: 52,
           child: Row(
             children: [
-              Flexible(
-                flex: 3,
+              // Icon picker button
+              GestureDetector(
+                onTap: () async {
+                  final picked = await pickBookIcon(context, currentIcon);
+                  if (picked != null) {
+                    await ref.read(bookIconProvider.notifier).set(picked);
+                  }
+                },
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Icon(currentIcon,
+                      color: theme.colorScheme.primary, size: 24),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Name field
+              Expanded(
                 child: TextFormField(
                   controller: _controller,
                   textInputAction: TextInputAction.done,
@@ -252,22 +457,22 @@ class _BookNameSectionState extends ConsumerState<_BookNameSection> {
                 ),
               ),
               const SizedBox(width: 10),
-              Flexible(
-                flex: 1,
-                child: SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+              // Save button
+              SizedBox(
+                width: 64,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Text('Save'),
                   ),
+                  child: const Text('Save'),
                 ),
               ),
             ],
@@ -295,7 +500,8 @@ class _CategoriesSectionState extends ConsumerState<_CategoriesSection> {
   @override
   void initState() {
     super.initState();
-    _countsFuture = ref.read(repositoryProvider).fetchCategoryUsageCounts();
+    _countsFuture = ref.read(repositoryProvider)?.fetchCategoryUsageCounts()
+        ?? Future.value({});
   }
 
   void _showCategoryDialog(int? index, CategoryInfo? existing) {

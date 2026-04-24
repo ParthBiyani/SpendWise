@@ -61,7 +61,7 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: options.length,
-                separatorBuilder: (_, __) => const SizedBox(width: spacing),
+                separatorBuilder: (_, _) => const SizedBox(width: spacing),
                 itemBuilder: (context, index) {
                   final option = options[index];
                   return CategoryTile(

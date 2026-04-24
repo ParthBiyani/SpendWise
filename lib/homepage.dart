@@ -8,8 +8,8 @@ import 'package:spendwise/home/widgets/grouped_transaction_sliver.dart';
 import 'package:spendwise/home/widgets/home_bottom_bar.dart';
 import 'package:spendwise/home/widgets/summary_card.dart';
 import 'package:spendwise/home/utils/toast_utils.dart';
+import 'package:spendwise/home/pages/analytics_page.dart';
 import 'package:spendwise/home/pages/generate_reports_page.dart';
-import 'package:spendwise/home/pages/import_transactions_page.dart';
 import 'package:spendwise/home/pages/settings_page.dart';
 import 'package:spendwise/providers.dart';
 
@@ -130,7 +130,7 @@ class _AppToggleLabel extends StatelessWidget {
   }
 }
 
-enum _AppMenu { settings, generateReports, importTransactions, deleteAll }
+enum _AppMenu { settings, generateReports, deleteAll }
 
 class _MenuItem extends StatelessWidget {
   const _MenuItem({required this.icon, required this.label, this.color});
@@ -220,6 +220,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
     if (confirmed) {
       final repo = ref.read(repositoryProvider);
+      if (repo == null) return;
       try {
         await repo.deleteAll();
       } catch (e) {
@@ -235,6 +236,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
     if (confirmed) {
       final repo = ref.read(repositoryProvider);
+      if (repo == null) return;
       try {
         for (final id in _selectedTransactionIds) {
           await repo.delete(id);
@@ -248,6 +250,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   void _openForm({bool isIncome = false, TransactionItem? item}) {
     final repo = ref.read(repositoryProvider);
+    if (repo == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => item != null
@@ -321,18 +324,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                     elevation: 4,
                     offset: const Offset(0, 48),
                     onSelected: (item) {
+                      final bookId = ref.read(activeBookIdProvider);
                       switch (item) {
                         case _AppMenu.settings:
+                          if (bookId == null) return;
                           Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const SettingsPage(),
+                            builder: (_) => SettingsPage(bookId: bookId),
                           ));
                         case _AppMenu.generateReports:
+                          if (bookId == null) return;
                           Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const GenerateReportsPage(),
-                          ));
-                        case _AppMenu.importTransactions:
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => const ImportTransactionsPage(),
+                            builder: (_) => GenerateReportsPage(bookId: bookId),
                           ));
                         case _AppMenu.deleteAll:
                           _confirmAndDeleteAll();
@@ -348,11 +350,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         value: _AppMenu.generateReports,
                         height: 40,
                         child: _MenuItem(icon: Icons.picture_as_pdf_outlined, label: 'Generate reports'),
-                      ),
-                      const PopupMenuItem(
-                        value: _AppMenu.importTransactions,
-                        height: 40,
-                        child: _MenuItem(icon: Icons.upload_file_outlined, label: 'Import transactions'),
                       ),
                       PopupMenuItem(
                         value: _AppMenu.deleteAll,
@@ -380,10 +377,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
             child: _showAnalytics
-                ? const Center(
-                    key: ValueKey('analytics'),
-                    child: Text('Analytics page'),
-                  )
+                ? const AnalyticsPage(key: ValueKey('analytics'))
                 : CustomScrollView(
                     key: const ValueKey('transactions'),
                   controller: _scrollController,

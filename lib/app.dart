@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:spendwise/homepage.dart';
+import 'package:spendwise/books/pages/books_list_page.dart';
 
 class AppRouter extends StatelessWidget {
   const AppRouter({super.key});
@@ -7,7 +7,6 @@ class AppRouter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: Add authentication logic here in the future
-    // For now, we always show the HomePage
-    return const HomePage();
+    return const BooksListPage();
   }
 }

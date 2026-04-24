@@ -23,7 +23,7 @@ class PaymentMethodSelector extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: paymentMethods.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
+        separatorBuilder: (_, _) => const SizedBox(width: 15),
         itemBuilder: (context, index) {
           final label = paymentMethods[index];
           return FilledPill(

@@ -40,7 +40,7 @@ class FilterChips extends StatelessWidget {
             onSelected: (_) => onSelected(label),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemCount: filters.length,
       ),
     );

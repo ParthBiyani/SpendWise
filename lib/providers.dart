@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendwise/config/constants.dart';
 import 'package:spendwise/data/local/app_database.dart';
+import 'package:spendwise/data/repositories/books_repository.dart';
 import 'package:spendwise/data/repositories/transactions_repository.dart';
 import 'package:spendwise/home/models/date_group.dart';
 import 'package:spendwise/home/models/filter_state.dart';
@@ -12,12 +11,63 @@ import 'package:spendwise/home/utils/transaction_utils.dart'
     show groupTransactions, computeRunningBalances;
 
 // ---------------------------------------------------------------------------
-// App-wide convenience providers derived from the mutable notifiers
+// Infrastructure providers
 // ---------------------------------------------------------------------------
 
-/// Flat list of category names, in display order.
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+
+final booksRepositoryProvider = Provider<BooksRepository>((ref) {
+  return BooksRepository(ref.watch(appDatabaseProvider));
+});
+
+// ---------------------------------------------------------------------------
+// Active book selection
+// ---------------------------------------------------------------------------
+
+/// The currently open book ID. Null when on the Books List page.
+final activeBookIdProvider = StateProvider<int?>((ref) => null);
+
+/// Stream of all (non-deleted) books, sorted by last updated.
+final booksListProvider = StreamProvider<List<Book>>((ref) {
+  return ref.watch(booksRepositoryProvider).watchAll();
+});
+
+// ---------------------------------------------------------------------------
+// Scoped repository — only non-null when a book is open
+// ---------------------------------------------------------------------------
+
+final repositoryProvider = Provider<TransactionsRepository?>((ref) {
+  final bookId = ref.watch(activeBookIdProvider);
+  if (bookId == null) return null;
+  return TransactionsRepository(ref.watch(appDatabaseProvider), bookId: bookId);
+});
+
+// ---------------------------------------------------------------------------
+// App-wide convenience providers derived from the active book
+// ---------------------------------------------------------------------------
+
+/// Flat list of category names, in display order (sort_order from DB).
 final availableCategoriesProvider = Provider<List<String>>((ref) {
   return (ref.watch(categoriesProvider).valueOrNull ?? []).map((c) => c.name).toList();
+});
+
+/// Flat list of category names sorted by usage count descending.
+final sortedCategoriesProvider = FutureProvider<List<String>>((ref) async {
+  final cats = ref.watch(categoriesProvider).valueOrNull ?? [];
+  final repo = ref.watch(repositoryProvider);
+  if (repo == null) return cats.map((c) => c.name).toList();
+  final counts = await repo.fetchCategoryUsageCounts();
+  final sorted = cats.toList()
+    ..sort((a, b) {
+      final countDiff = (counts[b.name] ?? 0).compareTo(counts[a.name] ?? 0);
+      if (countDiff != 0) return countDiff;
+      return cats.indexOf(a).compareTo(cats.indexOf(b));
+    });
+  return sorted.map((c) => c.name).toList();
 });
 
 /// Flat list of payment method names, in display order.
@@ -43,20 +93,6 @@ final paymentMethodIconsProvider = Provider<Map<String, IconData>>((ref) {
 const int kPageSize = 30;
 
 // ---------------------------------------------------------------------------
-// Infrastructure providers
-// ---------------------------------------------------------------------------
-
-final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final db = AppDatabase();
-  ref.onDispose(db.close);
-  return db;
-});
-
-final repositoryProvider = Provider<TransactionsRepository>((ref) {
-  return TransactionsRepository(ref.watch(appDatabaseProvider));
-});
-
-// ---------------------------------------------------------------------------
 // Filter state
 // ---------------------------------------------------------------------------
 
@@ -73,12 +109,13 @@ final filterStateProvider =
 
 // ---------------------------------------------------------------------------
 // Full filtered stream — used for summary totals and running balances only.
-// NOT used for the display list (that comes from the paged notifier).
 // ---------------------------------------------------------------------------
 
 final allFilteredStreamProvider = StreamProvider<List<TransactionItem>>((ref) {
+  final repo = ref.watch(repositoryProvider);
+  if (repo == null) return const Stream.empty();
   final filterState = ref.watch(filterStateProvider);
-  return ref.watch(repositoryProvider).watchFiltered(filterState);
+  return repo.watchFiltered(filterState);
 });
 
 // ---------------------------------------------------------------------------
@@ -109,18 +146,17 @@ class TransactionPageState {
   }
 }
 
-class TransactionPageNotifier
-    extends AsyncNotifier<TransactionPageState> {
+class TransactionPageNotifier extends AsyncNotifier<TransactionPageState> {
   @override
   Future<TransactionPageState> build() async {
-    // Re-run whenever the filter changes.
     final filterState = ref.watch(filterStateProvider);
-    // Also re-run when the underlying DB stream emits (e.g. after add/delete).
     ref.watch(allFilteredStreamProvider);
 
     final repo = ref.read(repositoryProvider);
-    final first = await repo.fetchPaged(filterState,
-        limit: kPageSize, offset: 0);
+    if (repo == null) {
+      return const TransactionPageState(items: [], hasMore: false, isLoadingMore: false);
+    }
+    final first = await repo.fetchPaged(filterState, limit: kPageSize, offset: 0);
     return TransactionPageState(
       items: first,
       hasMore: first.length == kPageSize,
@@ -136,6 +172,7 @@ class TransactionPageNotifier
 
     final filterState = ref.read(filterStateProvider);
     final repo = ref.read(repositoryProvider);
+    if (repo == null) return;
     final next = await repo.fetchPaged(filterState,
         limit: kPageSize, offset: current.items.length);
 
@@ -152,104 +189,108 @@ final transactionPageProvider =
         TransactionPageNotifier.new);
 
 // ---------------------------------------------------------------------------
-// Derived display providers (use the paged list)
+// Derived display providers
 // ---------------------------------------------------------------------------
 
 final groupedTransactionsProvider = Provider<List<DateGroup>>((ref) {
-  final items =
-      ref.watch(transactionPageProvider).valueOrNull?.items ?? const [];
+  final items = ref.watch(transactionPageProvider).valueOrNull?.items ?? const [];
   return groupTransactions(items);
 });
 
-// Running balances are computed over the full filtered set so that the balance
-// shown on each visible tile is correct relative to all-time history.
 final runningBalancesProvider = Provider<Map<int, double>>((ref) {
   return computeRunningBalances(
       ref.watch(allFilteredStreamProvider).valueOrNull ?? const []);
 });
 
 // ---------------------------------------------------------------------------
-// Settings providers — persisted to the Settings table in SQLite
+// Settings providers — backed by the active book's categories/payment methods
 // ---------------------------------------------------------------------------
 
-// IconData serialisation helpers (codePoint + fontFamily + fontPackage)
-Map<String, dynamic> _iconToJson(IconData icon) => {
-      'cp': icon.codePoint,
-      'ff': icon.fontFamily,
-      'fp': icon.fontPackage,
-    };
-
-IconData _iconFromJson(Map<String, dynamic> j) => IconData(
-      j['cp'] as int,
-      fontFamily: j['ff'] as String?,
-      fontPackage: j['fp'] as String?,
-    );
-
 class BookNameNotifier extends AsyncNotifier<String> {
-  static const _key = 'book_name';
-
   @override
   Future<String> build() async {
-    final db = ref.read(appDatabaseProvider);
-    return await db.getSetting(_key) ?? 'Wallet Transactions';
+    final bookId = ref.watch(activeBookIdProvider);
+    if (bookId == null) return '';
+    final book = await ref.read(booksRepositoryProvider).getBook(bookId);
+    return book?.name ?? '';
   }
 
   Future<void> set(String name) async {
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
     state = AsyncData(name);
-    await ref.read(appDatabaseProvider).setSetting(_key, name);
+    await ref.read(booksRepositoryProvider).rename(bookId, name);
   }
 }
 
 final bookNameProvider =
     AsyncNotifierProvider<BookNameNotifier, String>(BookNameNotifier.new);
 
-class CategoriesNotifier extends AsyncNotifier<List<CategoryInfo>> {
-  static const _key = 'categories';
-
+class BookIconNotifier extends AsyncNotifier<IconData> {
   @override
-  Future<List<CategoryInfo>> build() async {
-    final db = ref.read(appDatabaseProvider);
-    final raw = await db.getSetting(_key);
-    if (raw == null) return List<CategoryInfo>.from(categories);
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list.map((e) {
-      final m = e as Map<String, dynamic>;
-      return CategoryInfo(
-        name: m['name'] as String,
-        icon: _iconFromJson(m['icon'] as Map<String, dynamic>),
-        classType: m['classType'] as String,
-      );
-    }).toList();
+  Future<IconData> build() async {
+    final bookId = ref.watch(activeBookIdProvider);
+    if (bookId == null) return Icons.menu_book_outlined;
+    final book = await ref.read(booksRepositoryProvider).getBook(bookId);
+    if (book == null) return Icons.menu_book_outlined;
+    return IconData(book.iconCodePoint, fontFamily: book.iconFontFamily);
   }
 
-  Future<void> _persist(List<CategoryInfo> list) async {
-    final encoded = jsonEncode(list.map((c) => {
-          'name': c.name,
-          'icon': _iconToJson(c.icon),
-          'classType': c.classType,
-        }).toList());
-    await ref.read(appDatabaseProvider).setSetting(_key, encoded);
+  Future<void> set(IconData icon) async {
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    state = AsyncData(icon);
+    await ref.read(booksRepositoryProvider).updateIcon(bookId, icon);
+  }
+}
+
+final bookIconProvider =
+    AsyncNotifierProvider<BookIconNotifier, IconData>(BookIconNotifier.new);
+
+class CategoriesNotifier extends AsyncNotifier<List<CategoryInfo>> {
+  @override
+  Future<List<CategoryInfo>> build() async {
+    final bookId = ref.watch(activeBookIdProvider);
+    if (bookId == null) return [];
+    final rows = await ref
+        .watch(booksRepositoryProvider)
+        .watchCategories(bookId)
+        .first;
+    return rows.map(BooksRepository.categoryFromRow).toList();
   }
 
   Future<void> add(CategoryInfo item) async {
-    final current = state.valueOrNull ?? [];
-    final updated = [...current, item];
-    state = AsyncData(updated);
-    await _persist(updated);
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    await ref.read(booksRepositoryProvider).addCategory(bookId, item);
+    ref.invalidateSelf();
   }
 
   Future<void> edit(int index, CategoryInfo item) async {
-    final updated = List<CategoryInfo>.from(state.valueOrNull ?? []);
-    updated[index] = item;
-    state = AsyncData(updated);
-    await _persist(updated);
+    final current = state.valueOrNull ?? [];
+    if (index < 0 || index >= current.length) return;
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    // We need the DB row id — re-fetch rows to get the id
+    final rows = await ref.read(booksRepositoryProvider).watchCategories(bookId).first;
+    if (index >= rows.length) return;
+    await ref.read(booksRepositoryProvider).updateCategory(
+          rows[index].id,
+          item,
+          sortOrder: rows[index].sortOrder,
+        );
+    ref.invalidateSelf();
   }
 
   Future<void> remove(int index) async {
-    final updated = List<CategoryInfo>.from(state.valueOrNull ?? []);
-    updated.removeAt(index);
-    state = AsyncData(updated);
-    await _persist(updated);
+    final current = state.valueOrNull ?? [];
+    if (index < 0 || index >= current.length) return;
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    final rows = await ref.read(booksRepositoryProvider).watchCategories(bookId).first;
+    if (index >= rows.length) return;
+    await ref.read(booksRepositoryProvider).removeCategory(rows[index].id);
+    ref.invalidateSelf();
   }
 }
 
@@ -258,50 +299,48 @@ final categoriesProvider =
         CategoriesNotifier.new);
 
 class PaymentMethodsNotifier extends AsyncNotifier<List<PaymentMethodInfo>> {
-  static const _key = 'payment_methods';
-
   @override
   Future<List<PaymentMethodInfo>> build() async {
-    final db = ref.read(appDatabaseProvider);
-    final raw = await db.getSetting(_key);
-    if (raw == null) return List<PaymentMethodInfo>.from(paymentMethods);
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list.map((e) {
-      final m = e as Map<String, dynamic>;
-      return PaymentMethodInfo(
-        name: m['name'] as String,
-        icon: _iconFromJson(m['icon'] as Map<String, dynamic>),
-      );
-    }).toList();
-  }
-
-  Future<void> _persist(List<PaymentMethodInfo> list) async {
-    final encoded = jsonEncode(list.map((p) => {
-          'name': p.name,
-          'icon': _iconToJson(p.icon),
-        }).toList());
-    await ref.read(appDatabaseProvider).setSetting(_key, encoded);
+    final bookId = ref.watch(activeBookIdProvider);
+    if (bookId == null) return [];
+    final rows = await ref
+        .watch(booksRepositoryProvider)
+        .watchPaymentMethods(bookId)
+        .first;
+    return rows.map(BooksRepository.paymentMethodFromRow).toList();
   }
 
   Future<void> add(PaymentMethodInfo item) async {
-    final current = state.valueOrNull ?? [];
-    final updated = [...current, item];
-    state = AsyncData(updated);
-    await _persist(updated);
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    await ref.read(booksRepositoryProvider).addPaymentMethod(bookId, item);
+    ref.invalidateSelf();
   }
 
   Future<void> edit(int index, PaymentMethodInfo item) async {
-    final updated = List<PaymentMethodInfo>.from(state.valueOrNull ?? []);
-    updated[index] = item;
-    state = AsyncData(updated);
-    await _persist(updated);
+    final current = state.valueOrNull ?? [];
+    if (index < 0 || index >= current.length) return;
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    final rows = await ref.read(booksRepositoryProvider).watchPaymentMethods(bookId).first;
+    if (index >= rows.length) return;
+    await ref.read(booksRepositoryProvider).updatePaymentMethod(
+          rows[index].id,
+          item,
+          sortOrder: rows[index].sortOrder,
+        );
+    ref.invalidateSelf();
   }
 
   Future<void> remove(int index) async {
-    final updated = List<PaymentMethodInfo>.from(state.valueOrNull ?? []);
-    updated.removeAt(index);
-    state = AsyncData(updated);
-    await _persist(updated);
+    final current = state.valueOrNull ?? [];
+    if (index < 0 || index >= current.length) return;
+    final bookId = ref.read(activeBookIdProvider);
+    if (bookId == null) return;
+    final rows = await ref.read(booksRepositoryProvider).watchPaymentMethods(bookId).first;
+    if (index >= rows.length) return;
+    await ref.read(booksRepositoryProvider).removePaymentMethod(rows[index].id);
+    ref.invalidateSelf();
   }
 }
 
@@ -320,8 +359,7 @@ typedef TransactionSummary = ({
 });
 
 final summaryProvider = Provider<TransactionSummary>((ref) {
-  final items =
-      ref.watch(allFilteredStreamProvider).valueOrNull ?? const [];
+  final items = ref.watch(allFilteredStreamProvider).valueOrNull ?? const [];
   final totalIncome =
       items.where((i) => i.isIncome).fold(0.0, (s, i) => s + i.amount);
   final totalExpense =

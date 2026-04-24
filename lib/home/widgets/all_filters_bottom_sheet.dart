@@ -314,12 +314,15 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                           final tileWidth =
                               (constraints.maxWidth - (spacing * 4)) / 5;
                           final tileSize = tileWidth.clamp(56.0, 72.0);
+                          final List<String> sortedCategories =
+                              ref.watch(sortedCategoriesProvider).valueOrNull
+                              ?? ref.watch(availableCategoriesProvider);
                           return SizedBox(
                             height: tileSize + 28,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              itemCount: ref.watch(availableCategoriesProvider).length + 1,
-                              separatorBuilder: (_, __) =>
+                              itemCount: sortedCategories.length + 1,
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(width: spacing),
                               itemBuilder: (context, index) {
                                 if (index == 0) {
@@ -384,8 +387,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                                     ),
                                   );
                                 }
-                                final category =
-                                    ref.watch(availableCategoriesProvider)[index - 1];
+                                final category = sortedCategories[index - 1];
                                 final isSelected = _currentFilters.categories
                                     .contains(category);
                                 return CategoryTile(
@@ -422,7 +424,7 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: ref.watch(availablePaymentMethodsProvider).length + 1,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (_, _) =>
                               const SizedBox(width: 15),
                           itemBuilder: (context, index) {
                             if (index == 0) {
@@ -528,13 +530,23 @@ class _AllFiltersBottomSheetState extends ConsumerState<AllFiltersBottomSheet> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (_currentFilters.dateFilter == 'Custom Range') {
-                            if (_currentFilters.customStartDate != null &&
-                                _currentFilters.customEndDate != null) {
-                              if (_currentFilters.customStartDate!
-                                  .isAfter(_currentFilters.customEndDate!)) {
-                                showAppToast(context, 'Start date must be before end date');
-                                return;
-                              }
+                            final start = _currentFilters.customStartDate;
+                            final end = _currentFilters.customEndDate;
+                            if (start == null && end == null) {
+                              showAppToast(context, 'Please select start and end dates');
+                              return;
+                            }
+                            if (start == null) {
+                              showAppToast(context, 'Please select a start date');
+                              return;
+                            }
+                            if (end == null) {
+                              showAppToast(context, 'Please select an end date');
+                              return;
+                            }
+                            if (start.isAfter(end)) {
+                              showAppToast(context, 'Start date must be before end date');
+                              return;
                             }
                           }
                           ref

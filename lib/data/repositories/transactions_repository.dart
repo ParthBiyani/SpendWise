@@ -3,22 +3,20 @@ import 'package:spendwise/data/local/app_database.dart';
 import 'package:spendwise/data/repositories/repository_exceptions.dart';
 import 'package:spendwise/home/models/filter_state.dart';
 import 'package:spendwise/home/models/transaction_item.dart';
+import 'package:uuid/uuid.dart';
 
 class TransactionsRepository {
-  TransactionsRepository(this._db);
+  TransactionsRepository(this._db, {required this.bookId});
 
   final AppDatabase _db;
+  final int bookId;
 
-  Stream<List<TransactionItem>> watchAll() {
-    return _db.watchAllTransactions().map((rows) => rows.map(_toItem).toList()).handleError(
-          (Object e, StackTrace st) =>
-              throw TransactionReadException('Failed to watch transactions', cause: e),
-        );
-  }
+  static const _uuid = Uuid();
 
   Stream<List<TransactionItem>> watchFiltered(FilterState filterState) {
     return _db
         .watchFilteredTransactions(
+          bookId: bookId,
           dateFilter: filterState.dateFilter,
           customStartDate: filterState.customStartDate,
           customEndDate: filterState.customEndDate,
@@ -44,6 +42,7 @@ class TransactionsRepository {
   }) async {
     try {
       final rows = await _db.fetchFilteredTransactionsPaged(
+        bookId: bookId,
         dateFilter: filterState.dateFilter,
         customStartDate: filterState.customStartDate,
         customEndDate: filterState.customEndDate,
@@ -65,7 +64,7 @@ class TransactionsRepository {
 
   Future<Map<String, int>> fetchCategoryUsageCounts() async {
     try {
-      return await _db.fetchCategoryUsageCounts();
+      return await _db.fetchCategoryUsageCounts(bookId: bookId);
     } catch (e) {
       throw TransactionReadException('Failed to fetch category usage counts', cause: e);
     }
@@ -73,7 +72,9 @@ class TransactionsRepository {
 
   Future<int> add(TransactionItem item) async {
     try {
-      return await _db.addTransaction(_toCompanion(item));
+      final id = await _db.addTransaction(_toCompanion(item));
+      await _db.touchBook(bookId);
+      return id;
     } catch (e) {
       throw TransactionInsertException('Failed to add transaction', cause: e);
     }
@@ -84,7 +85,9 @@ class TransactionsRepository {
       throw const TransactionUpdateException('Transaction id is required for update');
     }
     try {
-      return await _db.updateTransaction(_toCompanion(item));
+      final result = await _db.updateTransaction(_toCompanion(item));
+      await _db.touchBook(bookId);
+      return result;
     } catch (e) {
       throw TransactionUpdateException('Failed to update transaction', cause: e);
     }
@@ -92,7 +95,9 @@ class TransactionsRepository {
 
   Future<int> delete(int id) async {
     try {
-      return await _db.deleteTransactionById(id);
+      final result = await _db.deleteTransactionById(id);
+      await _db.touchBook(bookId);
+      return result;
     } catch (e) {
       throw TransactionDeleteException('Failed to delete transaction', cause: e);
     }
@@ -100,7 +105,9 @@ class TransactionsRepository {
 
   Future<int> deleteAll() async {
     try {
-      return await _db.deleteAllTransactions();
+      final result = await _db.deleteAllTransactions(bookId: bookId);
+      await _db.touchBook(bookId);
+      return result;
     } catch (e) {
       throw TransactionDeleteException('Failed to delete all transactions', cause: e);
     }
@@ -124,6 +131,8 @@ class TransactionsRepository {
   TransactionsCompanion _toCompanion(TransactionItem item) {
     return TransactionsCompanion(
       id: item.id == null ? const Value.absent() : Value(item.id!),
+      uuid: item.id == null ? Value(_uuid.v4()) : const Value.absent(),
+      bookId: Value(bookId),
       remarks: Value(item.remarks),
       category: Value(item.category),
       classType: Value(item.classType),
@@ -133,6 +142,7 @@ class TransactionsRepository {
       referenceId: Value(item.referenceId),
       entryBy: Value(item.entryBy),
       occurredAt: Value(item.dateTime),
+      updatedAt: Value(DateTime.now()),
     );
   }
 }
